@@ -1,5 +1,5 @@
 #' Calculate default hyperparameter space for tuning
 #' @param surrogate Surrogate models
-calculateTuningSpace(surrogate, quantile) {
-  
+calculateTuningSpace = function(surrogate, quantile) {
+  surrogate
 }
