@@ -10,13 +10,32 @@
 makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, tbl.metaFeatures, param.set){
   #train mlr model on full table for measure
   mlr.mod.measure = list()
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
+  # this is for numerics
+  task.data[is.na(task.data)] = -10 - 1
+  
+  # logicals
+  for(i in 1:ncol(task.data)) {
+    if(is.logical(task.data[, i]))
+      task.data[, i] = as.factor(task.data[, i])
+  }
+  # this is for factors
+  #task.data$booster = addNA(task.data$booster)
+  
+  if(!is.null(task.ids)) {
+    uni = unique(task.data$task.id)
+    task.ids = uni[uni %in% task.ids]
+  } else {
+    task.ids = unique(task.data$task.id)
+  }
+  
   for(i in seq_along(task.ids)) {
+    print(paste("task", i, "of", length(task.ids)))
     task.idi = task.ids[i]
-    task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
-    # this is not a good solution
-    task.data = task.data[apply(task.data, 1, function(x) !any(is.na(x))),]
+    
+    
     mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task.id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
-    mlr.lrn = makeLearner("regr.randomForest")
+    mlr.lrn = makeLearner("regr.ranger")
     mlr.mod.measure[[i]] = train(mlr.lrn, mlr.task.measure)
   }
   return(mlr.mod.measure)
