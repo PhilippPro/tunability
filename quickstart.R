@@ -38,11 +38,11 @@ surrogate.mlr.lrns = list(
     makeLearner("regr.kknn"), 
     makeLearner("regr.brnn"),
     makeLearner("regr.lm"),
-    makeLearner("regr.km")
+    #makeLearner("regr.km")
   )
 
 library("parallelMap")
-parallelStartSocket(8)
+parallelStartSocket(9)
 benchmark = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = "mlr.classif.xgboost", 
   task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrns)
 parallelStop()
