@@ -1,9 +1,10 @@
 #' Calculate default hyperparameter setting
 #' @param surrogates Surrogate models
-calculateDefault = function(surrogates, param.set) {
-  surr = surrogates
+calculateDefault = function(surrogates) {
+  surr = surrogates$surrogates
+  param.set = surrogates$param.set
   rnd.points = generateRandomDesign(10000, param.set)
-  rnd.points[is.na(rnd.points)] = -10 - 1
+  rnd.points = deleteNA(rnd.points)
   
   preds = matrix(NA, nrow(rnd.points), length(surr))
   for(i in seq_along(surr)) {
@@ -11,19 +12,19 @@ calculateDefault = function(surrogates, param.set) {
   }
   # Best default
   average_preds = apply(preds[, 1:2], 1, mean)
-  average_preds[average_preds == max(average_preds)]
-  rnd.points[average_preds == max(average_preds),]
-  list(default = rnd.points[average_preds == max(average_preds),], result = preds[average_preds == max(average_preds), ])
+  best = which(average_preds == max(average_preds))[1]
+  list(default = rnd.points[best,], result = preds[best, ])
 }
 
 #' Create default hyperparameter setting
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all
-calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", param.set, n.points = 10000) {
-  surr = surrogates
+calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", n.points = 10000) {
+  surr = surrogates$surrogates
+  param.set = surrogates$param.set
   if (hyperpar == "all") {
     rnd.points = generateRandomDesign(n.points, param.set)
-    rnd.points[is.na(rnd.points)] = -10 - 1
+    rnd.points = deleteNA(rnd.points)
     
     preds = matrix(NA, nrow(rnd.points), length(surr))
     for(i in seq_along(surr)) {
@@ -51,6 +52,7 @@ calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", param.s
       } 
       rnd.points = generateRandomDesign(n.points, param.set1)
       rnd.points1[, i] = rnd.points
+      rnd.points1 = deleteNA(rnd.points1)
       
       # Prediction 
       preds = matrix(NA, nrow(rnd.points), length(surr))
@@ -74,4 +76,18 @@ calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", param.s
 #' @param surrogate Surrogate models
 calculateTunability = function(default, optimumHyperpar, optimumTwoHyperpar = NULL) {
   optimumHyperpar - default$result
+}
+
+deleteNA = function(task.data) {
+  for(i in 1:ncol(task.data)) {
+    if(is.numeric(task.data[, i]))
+      task.data[is.na(task.data[, i]), i] = -10 - 1
+    if(is.factor(task.data[, i])) {
+      task.data[, i] = addNA(task.data[, i])
+      task.data[, i] = droplevels(task.data[, i])
+    }
+    if(is.logical(task.data[, i]))
+      task.data[, i] = as.factor(task.data[, i])
+  }
+  task.data
 }

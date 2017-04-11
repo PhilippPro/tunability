@@ -7,21 +7,16 @@
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @return surrogate model
-makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, tbl.metaFeatures, param.set){
+makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn){
+  param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
+  
   #train mlr model on full table for measure
   mlr.mod.measure = list()
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
-  # this is for numerics
-  task.data[is.na(task.data)] = -10 - 1
-  
-  # logicals
-  for(i in 1:ncol(task.data)) {
-    if(is.logical(task.data[, i]))
-      task.data[, i] = as.factor(task.data[, i])
-  }
-  # this is for factors
-  #task.data$booster = addNA(task.data$booster)
-  
+
+  task.data = deleteNA(task.data)
+
+  # get specific task ids
   if(!is.null(task.ids)) {
     uni = unique(task.data$task.id)
     task.ids = uni[uni %in% task.ids]
@@ -35,10 +30,10 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
     
     
     mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task.id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
-    mlr.lrn = makeLearner("regr.ranger")
+    mlr.lrn = surrogate.mlr.lrn
     mlr.mod.measure[[i]] = train(mlr.lrn, mlr.task.measure)
   }
-  return(mlr.mod.measure)
+  return(list(surrogates = mlr.mod.measure, param.set = param.set))
 }
 
 
