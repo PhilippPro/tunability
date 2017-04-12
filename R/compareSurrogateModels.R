@@ -18,6 +18,9 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
   task.data = deleteNA(task.data)
   
+  bigger_ten = names(table(task.data$task.id))[which(table(task.data$task.id) > 10)]
+  task.data = task.data[task.data$task.id %in% bigger_ten,]
+  
   # get specific task ids
   if(!is.null(task.ids)) {
     uni = unique(task.data$task.id)
@@ -33,7 +36,7 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   }
   mlr.lrns = surrogate.mlr.lrns
   rdesc = makeResampleDesc("RepCV", reps = 2, folds = 10)
-  mlr.benchmark = benchmark(mlr.lrns, mlr.tasks, resamplings = rdesc)
+  mlr.benchmark = benchmark(mlr.lrns, mlr.tasks, resamplings = rdesc, keep.pred = FALSE, models = FALSE)
   
   lrns = list(makeLearner("classif.lda"), makeLearner("classif.rpart"))
   tasks = list(iris.task, sonar.task)

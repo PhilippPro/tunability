@@ -13,13 +13,15 @@ calculateDefault = function(surrogates) {
   # Best default
   average_preds = apply(preds[, 1:2], 1, mean)
   best = which(average_preds == max(average_preds))[1]
-  list(default = rnd.points[best,], result = preds[best, ])
+  default = rnd.points[best,, drop = FALSE]
+  rownames(default) = NULL
+  list(default = rnd.points[best,, drop = FALSE], result = preds[best, ])
 }
 
 #' Create default hyperparameter setting
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all
-calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", n.points = 10000) {
+calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.points = 10000) {
   surr = surrogates$surrogates
   param.set = surrogates$param.set
   if (hyperpar == "all") {
@@ -32,12 +34,12 @@ calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", n.point
     }
     # Best default
     rnd.points[apply(preds, 2, which.max),]
-    return(diag(preds[apply(preds, 2, which.max), ]))
+    return(list(optimum = diag(preds[apply(preds, 2, which.max), ]), par.sets = rnd.points[apply(preds, 2, which.max),, drop = FALSE]))
   }
   
   if (hyperpar == "one") {
     result = matrix(NA, length(surr), length(param.set$pars))
-    rnd.points.def = default$default[rep(1, n.points),]
+    rnd.points.def = default$default[rep(1, n.points),, drop = FALSE]
     # only do this for parameters that makes sense changing them
     for(i in seq_along(param.set$pars)) { 
       print(names(param.set$pars)[i])
@@ -65,7 +67,7 @@ calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", n.point
     }
     result = data.frame(result)
     colnames(result) = names(param.set$pars)
-    return(result)
+    return(list(optimum = result))
   }
   if (hyperpar == "two") {
     print("nothing")
@@ -75,7 +77,7 @@ calculateDatasetOptimum = function(surrogate, default, hyperpar = "all", n.point
 #' Calculate tunability measures
 #' @param surrogate Surrogate models
 calculateTunability = function(default, optimumHyperpar, optimumTwoHyperpar = NULL) {
-  optimumHyperpar - default$result
+  optimumHyperpar$optimum - default$result
 }
 
 deleteNA = function(task.data) {
