@@ -6,18 +6,20 @@ load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
 library(devtools)
 load_all()
 
-tbl.results = getRunTable(run.tag = "botV1")
+tbl.results = getRunTable(run.tag = "botV1", numRuns = 200000)
 print(head(tbl.results))
 
-tbl.hypPars = getHyperparTable("botV1", excl.run.ids = NULL, numRuns = 300000, n = 10000)
+tbl.hypPars = getHyperparTable("botV1", excl.run.ids = NULL, numRuns = 300000, n = 100)
 save(tbl.hypPars, file = "hypPars.RData")
 tbl.hypPars3 = tbl.hypPars
-for(i in 1:20) {
-tbl.hypPars2 = getHyperparTable("botV1", excl.run.ids = unique(tbl.hypPars$run.id), numRuns = 300000, n = 10000)
+for(i in 1:50) {
+tbl.hypPars2 = getHyperparTable("botV1", excl.run.ids = unique(tbl.hypPars3$run.id), numRuns = 300000, n = 10000)
 print(head(tbl.hypPars2))
 tbl.hypPars3 = rbind(tbl.hypPars3, tbl.hypPars2)
 save(tbl.hypPars3, file = paste0("hypPars",i,".RData"))
 }
+
+print(table(tbl.hypPars3$hyperpar.name))
 
 tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"),]
 
@@ -30,7 +32,7 @@ load("hypPars.RData")
 surrogate.mlr.lrns = list(
     makeLearner("regr.rpart"),
     makeLearner("regr.randomForest", par.vals = list(ntree = 2000)),
-    makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
+    #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
     makeLearner("regr.svm"),
     #makeLearner("regr.bartMachine"),
     makeLearner("regr.cubist"),
