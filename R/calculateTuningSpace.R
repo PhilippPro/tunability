@@ -6,7 +6,8 @@ calculateTuningSpace = function(optimum, quant) {
   par.sets = optimum$par.sets
   for(i in 1:ncol(par.sets)) {
     if(is.numeric(par.sets[,i])) {
-      space = cbind(space, quantile(par.sets[,i], c(quant, 1-quant)))
+      par.sets[par.sets[,i]==-11,i] = NA
+      space = cbind(space, quantile(par.sets[,i], c(quant, 1-quant), na.rm = TRUE))
       colnames(space)[ncol(space)] = names(par.sets)[i]
     }
     if(is.factor(par.sets[,i]) | is.logical(par.sets[,i])) {

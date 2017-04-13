@@ -7,9 +7,10 @@
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @param surrogate.mlr.lrns list of mlr learners that should be compared
+#' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
 compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
-  tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrns){
+  tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100){
   
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   
@@ -18,8 +19,8 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
   task.data = deleteNA(task.data)
   
-  bigger_ten = names(table(task.data$task.id))[which(table(task.data$task.id) > 10)]
-  task.data = task.data[task.data$task.id %in% bigger_ten,]
+  bigger = names(table(task.data$task.id))[which(table(task.data$task.id) > min.experiments)]
+  task.data = task.data[task.data$task.id %in% bigger,]
   
   # get specific task ids
   if(!is.null(task.ids)) {

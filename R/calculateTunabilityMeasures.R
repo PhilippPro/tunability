@@ -8,6 +8,7 @@ calculateDefault = function(surrogates) {
   
   preds = matrix(NA, nrow(rnd.points), length(surr))
   for(i in seq_along(surr)) {
+    print(paste("surrogate predict: task", i, "of", length(surr)))
     preds[, i] = predict(surr[[i]], newdata = rnd.points)$data$response
   }
   # Best default
@@ -30,6 +31,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
     
     preds = matrix(NA, nrow(rnd.points), length(surr))
     for(i in seq_along(surr)) {
+      print(paste("surrogate predict: task", i, "of", length(surr)))
       preds[, i] = predict(surr[[i]], newdata = rnd.points)$data$response
     }
     # Best default

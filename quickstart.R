@@ -10,7 +10,7 @@ tbl.results = getRunTable(run.tag = "botV1", numRuns = 200000)
 print(head(tbl.results))
 
 tbl.hypPars = getHyperparTable("botV1", excl.run.ids = NULL, numRuns = 200000, n = 1000)
-#save(tbl.hypPars, file = "hypPars.RData")
+#save(tbl.results, tbl.hypPars, file = "hypPars.RData")
 tbl.hypPars3 = tbl.hypPars
 for(i in 3:50) {
   tbl.hypPars2 = getHyperparTable("botV1", excl.run.ids = unique(tbl.hypPars3$run.id), numRuns = 200000, n = 10000)
@@ -38,7 +38,7 @@ surrogate.mlr.lrns = list(
   makeLearner("regr.rpart"),
   makeLearner("regr.ranger", par.vals = list(num.trees = 2000)),
   #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
-  makeLearner("regr.svm"),
+  #makeLearner("regr.svm"),
   #makeLearner("regr.bartMachine"),
   makeLearner("regr.cubist"),
   #makeLearner("regr.glmnet"), 
@@ -53,8 +53,9 @@ bmr = list()
 library("parallelMap")
 parallelStartSocket(9)
 for (i in seq_along(learner.names)) {
+  print(i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrns)
+    task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
 }
 names(bmr) = learner.names
 parallelStop()
@@ -76,7 +77,7 @@ save(bmr_surrogate, file = "results.RData")
 # Calculate tunability measures
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000))
 
-results = list()
+results = surrogates_all = list()
 
 for(i in seq_along(learner.names)) {
   print(i)
@@ -91,7 +92,6 @@ for(i in seq_along(learner.names)) {
   # Tunability overall
   optimum = calculateDatasetOptimum(surrogates, hyperpar = "all")
   overallTunability = calculateTunability(default, optimum)
-  overallTunability = mean(overallTunability)
   
   # Tunability hyperparameter specific
   optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
@@ -101,14 +101,15 @@ for(i in seq_along(learner.names)) {
   # Tuning space
   tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
   
-  results[[i]] = list(surrogates = surrogates, default = default, overallTunability = overallTunability, 
+  surrogates_all[[i]] = surrogates
+  results[[i]] = list(default = default, overallTunability = overallTunability, 
     tunability = tunability, tuningSpace = tuningSpace)
 }
 names(results) = learner.names
-
-
+names(surrogates_all) = learner.names
 
 save(bmr_surrogate, results, file = "results.RData")
+save(surrogates_all, file = "surrogates.RData")
 
 # Annex
 

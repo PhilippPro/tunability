@@ -18,15 +18,13 @@ server = function(input, output) {
   output$plot1 <- renderPlot({
     plotBMRSummary(bmrInput())
   })
+  
   output$plot2 <- renderPlot({
     plotBMRRanksAsBarChart(bmrInput(), pos = "stack")
   })
-  # a = "mlr.classif.glmnet"
-  # bmr_surrogate[a]
   
   bmrInput <- reactive({
-    i = which(learner.names == input$algo)
-    bmr_surrogate[[i]]
+    bmr_surrogate[[which(learner.names == input$algo)]]
   })
   
   output$task = renderUI({
@@ -39,6 +37,26 @@ server = function(input, output) {
   
   output$defaults = renderTable({
     results[[input$algo]]$default$default
+  }, digits = 3)
+  
+  output$overallTunability = renderTable({
+    mean(results[[input$algo]]$overallTunability)
+  }, colnames = FALSE, digits = 3)
+  
+  output$plot3 <- renderPlot({
+    plot(density(results[[input$algo]]$overallTunability), main = "Density of the Overall Tunability")
+  })
+  
+  output$tunability = renderTable({
+    data.frame(t(results[[input$algo]]$tunability))
+  }, digits = 3)
+  
+  output$tuningSpaceNumerics = renderTable({
+    results[[input$algo]]$tuningSpace$numerics
+  }, rownames = TRUE, digits = 3)
+  
+  output$tuningSpaceFactors = renderTable({
+    results[[input$algo]]$tuningSpace$factors
   })
   
   # defaults = reactive({ 
@@ -107,12 +125,50 @@ ui = fluidPage(
     
     tabsetPanel(
       tabPanel("Surrogate models comparison", 
-        "Performance on different tasks", plotOutput("plot1"), 
-        plotOutput("plot1")),
-      tabPanel("Best defaults", tableOutput("defaults"))
+        plotOutput("plot1"), plotOutput("plot2")),
+      tabPanel("Defaults and Tunability", 
+        fluidRow(
+          column(12, "Defaults", tableOutput("defaults"))), 
+        fluidRow(
+          column(12, "Tunability", fluidRow(
+            column(1, "Overall mean tunability", tableOutput("overallTunability")), 
+            column(11, "Hyperparameters", tableOutput("tunability"))
+          ))),
+        plotOutput("plot3"), 
+      
+      fluidRow(column(12, "Tuning Space",
+        column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
+        column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
+      ))
+      )
     )
   )
 )
+
+
+
+shinyUI(fluidPage(
+  fluidRow(
+    column(12,
+      "Fluid 12",
+      fluidRow(
+        column(6,
+          "Fluid 6",
+          fluidRow(
+            column(6, 
+              "Fluid 6"),
+            column(6,
+              "Fluid 6")
+          )
+        ),
+        column(width = 6,
+          "Fluid 6")
+      )
+    )
+  )
+))
+
+
 
 shinyApp(ui = ui, server = server)
 

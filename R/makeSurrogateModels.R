@@ -6,8 +6,10 @@
 #' @param tbl.results df with getMlrRandomBotResults()
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
+#' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
-makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn){
+makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, 
+  tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100){
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   
   #train mlr model on full table for measure
@@ -15,6 +17,9 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
 
   task.data = deleteNA(task.data)
+  
+  bigger = names(table(task.data$task.id))[which(table(task.data$task.id) > min.experiments)]
+  task.data = task.data[task.data$task.id %in% bigger,]
 
   # get specific task ids
   if(!is.null(task.ids)) {
@@ -25,7 +30,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
   }
   
   for(i in seq_along(task.ids)) {
-    print(paste("task", i, "of", length(task.ids)))
+    print(paste("surrogate train: task", i, "of", length(task.ids)))
     task.idi = task.ids[i]
     
     
