@@ -18,6 +18,9 @@ server = function(input, output) {
   output$plot1 <- renderPlot({
     plotBMRSummary(bmrInput())
   })
+  output$plot2 <- renderPlot({
+    plotBMRRanksAsBarChart(bmrInput(), pos = "stack")
+  })
   # a = "mlr.classif.glmnet"
   # bmr_surrogate[a]
   
@@ -103,7 +106,9 @@ ui = fluidPage(
     ),
     
     tabsetPanel(
-      tabPanel("Surrogate models comparison", plotOutput("plot1")),
+      tabPanel("Surrogate models comparison", 
+        "Performance on different tasks", plotOutput("plot1"), 
+        plotOutput("plot1")),
       tabPanel("Best defaults", tableOutput("defaults"))
     )
   )
