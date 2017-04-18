@@ -21,7 +21,7 @@ for(i in 3:50) {
 
 print(table(tbl.hypPars3$hyperpar.name))
 
-tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"),]
+tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"), ]
 
 tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 task.ids = unique(tbl.results$task.id)
@@ -79,6 +79,7 @@ surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000)
 
 results = surrogates_all = list()
 
+set.seed(123)
 for(i in seq_along(learner.names)) {
   print(i)
 

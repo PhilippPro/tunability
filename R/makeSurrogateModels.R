@@ -9,12 +9,12 @@
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
 makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, 
-  tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100){
+  tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100) {
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   
   #train mlr model on full table for measure
   mlr.mod.measure = list()
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars)
 
   task.data = deleteNA(task.data)
   
@@ -49,7 +49,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @return [\code{data.frame}] Complete table used for creating the surrogate model 
-makeBotTable = function(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures){
+makeBotTable = function(measure.name, learner.name, tbl.results, tbl.hypPars){
   
   measure.name.filter = measure.name
   learner.name.fiter = learner.name
