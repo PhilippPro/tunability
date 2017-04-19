@@ -75,7 +75,7 @@ save(bmr_surrogate, file = "results.RData")
 # Best model in general: 
 
 # Calculate tunability measures
-surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000))
+surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
 
 results = surrogates_all = list()
 

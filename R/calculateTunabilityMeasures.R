@@ -3,7 +3,7 @@
 calculateDefault = function(surrogates) {
   surr = surrogates$surrogates
   param.set = surrogates$param.set
-  rnd.points = generateRandomDesign(10000, param.set)
+  rnd.points = generateRandomDesign(10000, param.set, trafo = TRUE)
   rnd.points = deleteNA(rnd.points)
   
   preds = matrix(NA, nrow(rnd.points), length(surr))
@@ -26,7 +26,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
   surr = surrogates$surrogates
   param.set = surrogates$param.set
   if (hyperpar == "all") {
-    rnd.points = generateRandomDesign(n.points, param.set)
+    rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
     rnd.points = deleteNA(rnd.points)
     
     preds = matrix(NA, nrow(rnd.points), length(surr))
@@ -54,7 +54,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
         rnd.points1[, as.character(param.set1$pars[[1]]$requires[2])] = as.character(param.set1$pars[[1]]$requires[3])
         param.set1$pars[[1]]$requires = NULL
       } 
-      rnd.points = generateRandomDesign(n.points, param.set1)
+      rnd.points = generateRandomDesign(n.points, param.set1, trafo = TRUE)
       rnd.points1[, i] = rnd.points
       rnd.points1 = deleteNA(rnd.points1)
       
