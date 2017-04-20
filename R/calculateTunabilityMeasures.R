@@ -41,25 +41,15 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
   
   if (hyperpar == "one") {
     result = matrix(NA, length(surr), length(param.set$pars))
-    rnd.points.def = default$default[rep(1, n.points),, drop = FALSE]
     # only do this for parameters that makes sense changing them
-    for(i in seq_along(param.set$pars)) { 
+    for(i in seq_along(param.set$pars)) {
       print(names(param.set$pars)[i])
-      
-      # Generation of random points for one parameter
-      param.set1 = param.set
-      param.set1$pars = param.set$pars[i]
-      rnd.points1 = rnd.points.def
-      if(!is.null(param.set1$pars[[1]]$requires)) {
-        rnd.points1[, as.character(param.set1$pars[[1]]$requires[2])] = as.character(param.set1$pars[[1]]$requires[3])
-        param.set1$pars[[1]]$requires = NULL
-      } 
-      rnd.points = generateRandomDesign(n.points, param.set1, trafo = TRUE)
-      rnd.points1[, i] = rnd.points
+      rnd.points1 = generateRandomDesignWithDefaults(n.points, param.set, trafo = TRUE, default, subset = names(param.set$pars)[i])
+      # deleteNAs
       rnd.points1 = deleteNA(rnd.points1)
       
       # Prediction 
-      preds = matrix(NA, nrow(rnd.points), length(surr))
+      preds = matrix(NA, nrow(rnd.points) + 1, length(surr))
       for(j in seq_along(surr)) {
         preds[, j] = predict(surr[[j]], newdata = rnd.points1)$data$response
       }
@@ -72,7 +62,25 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
     return(list(optimum = result))
   }
   if (hyperpar == "two") {
-    print("nothing")
+    result = array(NA, dim = c(length(surr), length(param.set$pars), length(param.set$pars)))
+    
+    for(i in seq_along(param.set$pars)[-length(param.set$pars)]) {
+      for(j in seq_along(param.set$pars)[(i+1):length(param.set$pars)]) {
+        print(c(names(param.set$pars)[i], names(param.set$pars)[j]))
+        rnd.points1 = generateRandomDesignWithDefaults(n.points, param.set, trafo = TRUE, default, subset = names(param.set$pars)[c(i,j)])
+        rnd.points1 = deleteNA(rnd.points1)
+        
+        # Prediction 
+        preds = matrix(NA, nrow(rnd.points) + 1, length(surr))
+        for(k in seq_along(surr)) {
+          preds[, k] = predict(surr[[k]], newdata = rnd.points1)$data$response
+        }
+        # Best default
+        # rnd.points1[apply(preds, 2, which.max),]
+        result[, i, j] = diag(preds[apply(preds, 2, which.max), ])
+      }
+    }
+    return(list(optimum = result))
   }
 }
 
@@ -95,3 +103,46 @@ deleteNA = function(task.data) {
   }
   task.data
 }
+
+generateRandomDesignWithDefaults = function(n, param.set, trafo, default, subset) {
+  rnd.points.def = default$default[rep(1, n), , drop = FALSE]
+  
+  # Required Parameters and Values
+  reqPar = as.character(sapply(sapply(param.set$pars, `[[`, 12), `[[`, 2))
+  reqValue = as.character(sapply(sapply(param.set$pars, `[[`, 12), `[[`, 3))
+  
+  param.set1 = param.set
+  # If there are dependent variables include them
+  if(any(subset %in% reqPar)) {
+    subset = unique(c(subset, names(param.set$pars)[reqPar %in% subset]))
+  }
+  param.set1$pars = param.set$pars[subset]
+  rnd.points1 = rnd.points.def
+  
+  # If one parameter is required by another set it to the specific value
+
+  for(m in seq_along(subset)) {
+  if(!is.null(param.set1$pars[[m]]$requires)) {
+    reqParSubset = as.character(param.set1$pars[[m]]$requires[2])
+    reqValueSubset = as.character(param.set1$pars[[m]]$requires[3])
+    
+    rnd.points1[, reqParSubset] = reqValueSubset
+    
+    for(l in seq_along(param.set$pars)) {
+      if(reqPar[l] == reqParSubset & reqValue[l] != reqValueSubset)
+        rnd.points1[, l] = -10 - 1
+    }
+    if (!(reqParSubset %in% subset))
+      param.set1$pars[[m]]$requires = NULL
+  }
+  }
+  
+  
+  rnd.points = generateRandomDesign(n.points, param.set1, trafo = TRUE)
+  rnd.points1[, subset] = rnd.points
+  # Add the default
+  rnd.points1 = rbind(default$default, rnd.points1)
+  rnd.points1
+}
+  
+

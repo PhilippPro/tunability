@@ -112,18 +112,18 @@ names(surrogates_all) = learner.names
 save(bmr_surrogate, results, file = "results.RData")
 save(surrogates_all, file = "surrogates.RData")
 
-# Annex
-
 # Interactions
-optimumTwoHyperpar = calculateDatasetOptimum(surrogate, hyperpar = "two")
+set.seed(123)
+optimumTwoHyperpar = list()
+for(i in seq_along(learner.names)) {
+  print(i)
+  optimumTwoHyperpar[[i]] = calculateDatasetOptimum(surrogates = surrogates_all[[i]], default = results[[i]]$default, hyperpar = "two", n.points = 10000)
+}
+colMeans(optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE)
+
 tunability = calculateTunability(defaults, optimumHyperpar, optimumTwoHyperpar)
 
-# Tuning Space
-
-
-
-
-
+# Annex
 
 
 

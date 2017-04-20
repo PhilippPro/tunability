@@ -11,20 +11,30 @@ load(file = "../results.RData")
 
 server = function(input, output) {
   
-  
-  #load(file = "./hyperpars.RData")
   learner.names = names(results)
   
-  output$plot1 <- renderPlot({
+  bmrInput = reactive({
+    bmr_surrogate[[which(learner.names == input$algo )]]
+  })
+  
+  bmrAggr = reactive({
+    perfs = data.table(getBMRAggrPerformances(bmrInput(), as.df = T, drop = T))
+    namen = unique(perfs$learner.id)
+    perfs = data.frame(t(perfs[, mean(mse.test.mean), by = "learner.id"]$V1))
+    colnames(perfs) = namen
+    perfs
+  })
+  
+  output$bmr_result = renderTable({
+    bmrAggr()
+  }, digits = 5)
+  
+  output$plot1 = renderPlot({
     plotBMRSummary(bmrInput())
   })
   
-  output$plot2 <- renderPlot({
+  output$plot2 = renderPlot({
     plotBMRRanksAsBarChart(bmrInput(), pos = "stack")
-  })
-  
-  bmrInput <- reactive({
-    bmr_surrogate[[which(learner.names == input$algo)]]
   })
   
   output$task = renderUI({
@@ -59,60 +69,7 @@ server = function(input, output) {
     results[[input$algo]]$tuningSpace$factors
   })
   
-  # defaults = reactive({ 
-  #   results[[input$algo]]$default$default
-  #   })
-  
-  # hyperparTable = reactive({
-  #   hyperpars[hyperpars$run.id %in% unique(results[results$flow.name == input$lrn & results$data.name == input$ds,]$run.id), ]
-  # })
-  
-
-  
-  # hyperparValues = reactive({
-  #   #tidyr::spread(hyperpars, hyperpar.name, hyperpar.value, fill = NA)
-  #   df = reshape(hyperparTable(), idvar = "run.id", timevar = "hyperpar.name", direction = "wide")
-  #   colnames(df) = gsub("hyperpar.value.", "", colnames(df))
-  #   df
-  # })
-  
-  # output$summary.vis.hist = renderUI({
-  #   list(
-  #     column(9,
-  #       sliderInput("summary.vis.hist.nbins", "Number of bins", min = 1L, max = 100L,
-  #         value = 30L, step = 1L, width = "95%")
-  #     ),
-  #     column(3,
-  #       radioButtons("summary.vis.dens", "Show density?", choices = c("Yes", "No"),
-  #         selected = "Yes", inline = TRUE)
-  #     )
-  #   )
-  # })
-
 }
-
-# shinyUI(fluidPage(
-#   
-#   titlePanel("Tabsets"),
-#   
-#   sidebarLayout(
-#     
-#     sidebarPanel(
-#       # Inputs excluded for brevity
-#     ),
-#     
-#     mainPanel(
-#       tabsetPanel(
-#         tabPanel("Plot", plotOutput("plot")), 
-#         tabPanel("Summary", verbatimTextOutput("summary")), 
-#         tabPanel("Table", tableOutput("table"))
-#       )
-#     )
-#   )
-# ))
-
-
-
 
 ui = fluidPage(
   titlePanel("Summary of the benchmark results"),
@@ -125,7 +82,10 @@ ui = fluidPage(
     
     tabsetPanel(
       tabPanel("Surrogate models comparison", 
-        plotOutput("plot1"), plotOutput("plot2")),
+        fluidRow(
+          column(12, "Average mean square error of different surrogate models", tableOutput("bmr_result"))),
+        "Performance on datasets", plotOutput("plot1"), 
+        "Frequency of ranks", plotOutput("plot2")),
       tabPanel("Defaults and Tunability", 
         fluidRow(
           column(12, "Defaults", tableOutput("defaults"))), 
@@ -146,40 +106,4 @@ ui = fluidPage(
 )
 
 
-
-shinyUI(fluidPage(
-  fluidRow(
-    column(12,
-      "Fluid 12",
-      fluidRow(
-        column(6,
-          "Fluid 6",
-          fluidRow(
-            column(6, 
-              "Fluid 6"),
-            column(6,
-              "Fluid 6")
-          )
-        ),
-        column(width = 6,
-          "Fluid 6")
-      )
-    )
-  )
-))
-
-
-
 shinyApp(ui = ui, server = server)
-
-
-# 
-# box(width = 12, title = "Variable Visualization", id = "summary.vis.box",
-#   fluidRow(
-#     column(12,
-#       uiOutput("summary.vis.hist")),
-#     column(12,
-#       plotOutput("summary.vis")
-#     )
-#   )
-# )

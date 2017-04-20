@@ -10,7 +10,7 @@ load_all()
 library(mlr)
 lrn = makeLearner("classif.xgboost", predict.type = "prob")
 lrn = setHyperPars(lrn, 
-  nrounds = 50,
+  nrounds = 10,
   subsample = 0.944,
   booster = "gbtree",
   max_depth = 10,
@@ -70,5 +70,5 @@ for(i in seq_along(tasks$task.id)) {
 }
 
 # Evaluate the ideal eta identified by mbo, the default and the ideal default with surrogate model with resampling
-
+sum(sapply(sys, "[[", 3)) # nrounds = 10, 10 evals: 1,5 h.
 
