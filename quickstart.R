@@ -26,8 +26,29 @@ tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"), ]
 tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 task.ids = unique(tbl.results$task.id)
 
+tbl.metaFeatures = getMetaFeaturesTable(local.db = NULL)
+
+
+convertMtry = function(tbl.results, tbl.hypPars) {
+  features1 = listOMLTasks(limit = 50000)
+  results1 = tbl.results[, c("run.id", "task.id")]
+  features1 = features[, c("task.id", "number.of.features")]
+  results1 = results1 %>%
+    left_join(., features1, by = "task.id") %>%
+    select(., -task.id)
+  hypPars1 = tbl.hypPars[tbl.hypPars$hyperpar.name == "mtry", ] 
+  hypPars1 = left_join(hypPars1, results1, by = "run.id")
+  hypPars1 = unique(hypPars1)
+  tbl.hypPars[tbl.hypPars$hyperpar.name == "mtry", ]$hyperpar.value = as.numeric(hypPars1$hyperpar.value) / hypPars1$number.of.features
+  tbl.hypPars
+}
+
+tbl.hypPars = convertMtry(tbl.results, tbl.hypPars)
+
 load("hypPars.RData")
 # -----------------------------------------------------------------------------------------------------------
+
+
 
 library(stringi)
 learner.names = paste0("mlr.", names(lrn.par.set))
@@ -36,7 +57,7 @@ learner.names = stri_sub(learner.names, 1, -5)
 # Compare different surrogate models
 surrogate.mlr.lrns = list(
   makeLearner("regr.rpart"),
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000)),
+  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE)),
   #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
   #makeLearner("regr.svm"),
   #makeLearner("regr.bartMachine"),
@@ -57,6 +78,7 @@ for (i in seq_along(learner.names)) {
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
 }
+
 names(bmr) = learner.names
 parallelStop()
 
@@ -119,7 +141,7 @@ for(i in seq_along(learner.names)) {
   print(i)
   optimumTwoHyperpar[[i]] = calculateDatasetOptimum(surrogates = surrogates_all[[i]], default = results[[i]]$default, hyperpar = "two", n.points = 10000)
 }
-colMeans(optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE)
+colMeans(optimumTwoHyperpar[[4]]$optimum, dims = 1, na.rm = TRUE)
 
 tunability = calculateTunability(defaults, optimumHyperpar, optimumTwoHyperpar)
 

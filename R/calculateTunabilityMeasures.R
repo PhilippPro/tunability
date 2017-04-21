@@ -50,6 +50,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
       
       # Prediction 
       preds = matrix(NA, nrow(rnd.points) + 1, length(surr))
+      
       for(j in seq_along(surr)) {
         preds[, j] = predict(surr[[j]], newdata = rnd.points1)$data$response
       }

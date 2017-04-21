@@ -16,7 +16,7 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   
   #train mlr model on full table for measure
   mlr.mod.measure = list()
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars)
   task.data = deleteNA(task.data)
   
   bigger = names(table(task.data$task.id))[which(table(task.data$task.id) > min.experiments)]
@@ -36,14 +36,9 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
     mlr.tasks[[i]] = makeRegrTask(id = as.character(task.idi), subset(task.data, task.id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
   }
   mlr.lrns = surrogate.mlr.lrns
+  measures = list(mse, rsq, kendalltau, spearmanrho)
   rdesc = makeResampleDesc("RepCV", reps = 2, folds = 10)
-  mlr.benchmark = benchmark(mlr.lrns, mlr.tasks, resamplings = rdesc, keep.pred = FALSE, models = FALSE)
-  
-  lrns = list(makeLearner("classif.lda"), makeLearner("classif.rpart"))
-  tasks = list(iris.task, sonar.task)
-  rdesc = makeResampleDesc("CV", iters = 2L)
-  meas = list(acc, ber)
-  bmr = benchmark(lrns, tasks, rdesc, measures = meas)
+  mlr.benchmark = benchmark(mlr.lrns, mlr.tasks, resamplings = rdesc, keep.pred = FALSE, models = FALSE, measures = measures)
   
   return(mlr.benchmark)
 }
