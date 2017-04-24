@@ -49,7 +49,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
       rnd.points1 = deleteNA(rnd.points1)
       
       # Prediction 
-      preds = matrix(NA, nrow(rnd.points) + 1, length(surr))
+      preds = matrix(NA, nrow(rnd.points1), length(surr))
       
       for(j in seq_along(surr)) {
         preds[, j] = predict(surr[[j]], newdata = rnd.points1)$data$response
@@ -72,7 +72,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
         rnd.points1 = deleteNA(rnd.points1)
         
         # Prediction 
-        preds = matrix(NA, nrow(rnd.points) + 1, length(surr))
+        preds = matrix(NA, nrow(rnd.points1), length(surr))
         for(k in seq_along(surr)) {
           preds[, k] = predict(surr[[k]], newdata = rnd.points1)$data$response
         }
@@ -105,8 +105,8 @@ deleteNA = function(task.data) {
   task.data
 }
 
-generateRandomDesignWithDefaults = function(n, param.set, trafo, default, subset) {
-  rnd.points.def = default$default[rep(1, n), , drop = FALSE]
+generateRandomDesignWithDefaults = function(n.points, param.set, trafo, default, subset) {
+  rnd.points.def = default$default[rep(1, n.points), , drop = FALSE]
   
   # Required Parameters and Values
   reqPar = as.character(sapply(sapply(param.set$pars, `[[`, 12), `[[`, 2))

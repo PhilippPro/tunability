@@ -10,7 +10,7 @@
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
 compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
-  tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100){
+  tbl.hypPars, tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100) {
   
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   

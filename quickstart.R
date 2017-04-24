@@ -45,6 +45,8 @@ convertMtry = function(tbl.results, tbl.hypPars) {
 
 tbl.hypPars = convertMtry(tbl.results, tbl.hypPars)
 
+save(tbl.results, tbl.hypPars, file = "hypPars.RData")
+
 load("hypPars.RData")
 # -----------------------------------------------------------------------------------------------------------
 
@@ -71,6 +73,7 @@ surrogate.mlr.lrns = list(
 
 bmr = list()
 
+set.seed(123)
 library("parallelMap")
 parallelStartSocket(9)
 for (i in seq_along(learner.names)) {
@@ -94,7 +97,7 @@ bmr_surrogate = bmr
 # Save results
 save(bmr_surrogate, file = "results.RData")
 
-# Best model in general: 
+# Best model in general: ranger, cubist
 
 # Calculate tunability measures
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
@@ -105,28 +108,26 @@ set.seed(123)
 for(i in seq_along(learner.names)) {
   print(i)
 
+  # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrn)
   
   #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
   
+  # Default calculation
   default = calculateDefault(surrogates)
-
   # Tunability overall
-  optimum = calculateDatasetOptimum(surrogates, hyperpar = "all")
-  overallTunability = calculateTunability(default, optimum)
-  
+  optimum = calculateDatasetOptimum(surrogates, hyperpar = "all", n.points = 10000)
   # Tunability hyperparameter specific
   optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
-  tunability = calculateTunability(default, optimumHyperpar)
-  tunability = colMeans(tunability)
-  
+  # Tunability for two hyperparameters
+  optimumTwoHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "two", n.points = 10000)
   # Tuning space
   tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
-  
+    
   surrogates_all[[i]] = surrogates
-  results[[i]] = list(default = default, overallTunability = overallTunability, 
-    tunability = tunability, tuningSpace = tuningSpace)
+  results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
+    optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
 }
 names(results) = learner.names
 names(surrogates_all) = learner.names
@@ -134,16 +135,29 @@ names(surrogates_all) = learner.names
 save(bmr_surrogate, results, file = "results.RData")
 save(surrogates_all, file = "surrogates.RData")
 
-# Interactions
-set.seed(123)
-optimumTwoHyperpar = list()
-for(i in seq_along(learner.names)) {
-  print(i)
-  optimumTwoHyperpar[[i]] = calculateDatasetOptimum(surrogates = surrogates_all[[i]], default = results[[i]]$default, hyperpar = "two", n.points = 10000)
-}
-colMeans(optimumTwoHyperpar[[4]]$optimum, dims = 1, na.rm = TRUE)
+# Calculations
+overallTunability = calculateTunability(default, optimum)
+mean(overallTunability)
+tunability = calculateTunability(default, optimumHyperpar)
+data.frame(t(colMeans(tunability)))
 
-tunability = calculateTunability(defaults, optimumHyperpar, optimumTwoHyperpar)
+colMeans(optimumTwoHyperpar[[4]]$optimum, dims = 1, na.rm = TRUE)
+colMeans(optimum, dims = 1, na.rm = TRUE)
+tunability = colMeans(calculateTunability(results$mlr.classif.rpart$default, results$mlr.classif.rpart$optimumHyperpar))
+
+# Bare values
+tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result)
+
+colnames(tab) = rownames(tab) = names(tunability)
+# Interaction
+colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.glmnet$default$result) - 
+  outer(tunability, tunability, '+')
+# Performance gain
+colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.glmnet$default$result) - 
+  outer(tunability, tunability, pmax)
 
 # Annex
 

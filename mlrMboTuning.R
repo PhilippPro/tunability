@@ -75,3 +75,4 @@ sys2[[i]] = system.time(res.mbo2[[i]] <-  train(lrn, task))
 # Evaluate the ideal eta identified by mbo, the default and the ideal default with surrogate model with resampling
 sum(sapply(sys2, "[[", 3)) # nrounds = 10, 10 evals: 1,5 h.
 
+save(sys2, res.mbo2, file = "mboTuning.RData")
