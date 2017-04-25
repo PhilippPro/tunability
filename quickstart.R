@@ -117,7 +117,7 @@ for(i in seq_along(learner.names)) {
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
-  optimum = calculateDatasetOptimum(surrogates, hyperpar = "all", n.points = 10000)
+  optimum = calculateDatasetOptimum(surrogates, hyperpar = "all", n.points = 100000)
   # Tunability hyperparameter specific
   optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
   # Tunability for two hyperparameters
@@ -139,24 +139,25 @@ save(surrogates_all, file = "surrogates.RData")
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
-data.frame(t(colMeans(tunability)))
+# scaled
+data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
-colMeans(optimumTwoHyperpar[[4]]$optimum, dims = 1, na.rm = TRUE)
-colMeans(optimum, dims = 1, na.rm = TRUE)
+data.frame(t(colMeans(tunability)))
 tunability = colMeans(calculateTunability(results$mlr.classif.rpart$default, results$mlr.classif.rpart$optimumHyperpar))
 
 # Bare values
 tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
   mean(results$mlr.classif.rpart$default$result)
-
+diag(tab) = tunability
 colnames(tab) = rownames(tab) = names(tunability)
+tab
 # Interaction
-colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.glmnet$default$result) - 
+colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result) - 
   outer(tunability, tunability, '+')
 # Performance gain
-colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.glmnet$default$result) - 
+colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result) - 
   outer(tunability, tunability, pmax)
 
 
