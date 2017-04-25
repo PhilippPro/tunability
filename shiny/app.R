@@ -107,18 +107,14 @@ server = function(input, output) {
   })
   
   output$combiTable <- renderTable({
+    tab = colMeans(results[[input$algo]]$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - mean(results[[input$algo]]$default$result)
     if(input$combination == "Tunability") {
-      tab = colMeans(results[[input$algo]]$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-        mean(results[[input$algo]]$default$result)
+      diag(tab) = tunabilityValuesMean()
     } else {
     if(input$combination == "Interaction effect") {
-      tab = colMeans(results[[input$algo]]$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-        mean(results[[input$algo]]$default$result) - 
-        mean(outer(tunabilityValuesMean(), tunabilityValuesMean(), '+'))
+      tab = tab - mean(outer(tunabilityValuesMean(), tunabilityValuesMean(), '+'))
     } else {
-      tab = colMeans(results[[input$algo]]$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-        mean(results[[input$algo]]$default$result) -
-        outer(tunabilityValuesMean(), tunabilityValuesMean(), pmax)
+      tab = tab - outer(tunabilityValuesMean(), tunabilityValuesMean(), pmax)
     }
     }
     colnames(tab) = rownames(tab) = names(tunabilityValuesMean())
@@ -161,9 +157,11 @@ ui = fluidPage(
       fluidRow(column(12, "Tuning Space",
         column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
         column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
-      )),
-        uiOutput("combi"),
-        tableOutput("combiTable")
+      ))
+      ),
+      tabPanel("Interaction effects",
+      uiOutput("combi"),
+      tableOutput("combiTable")
       )
     )
   )

@@ -159,8 +159,21 @@ colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm 
   mean(results$mlr.classif.glmnet$default$result) - 
   outer(tunability, tunability, pmax)
 
-# Annex
 
+# Annex
+# Package defaults
+package.defaults = list(
+  glmnet = data.frame(alpha = 1, lambda = 0), # no regularization
+  rpart = data.frame(cp = 0.01, maxdepth = 30, minbucket = 7, minsplit = 20),
+  kknn = data.frame(k = 7),
+  svm = data.frame(kernel = "radial", cost = 1, gamma = 1, degree = -11), 
+  ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = FALSE),
+  xgboost = data.frame(nrounds = 500, eta = 0.3, subsample = 1, booster = "gbtree", max_depth = 6, min_child_weight = 1,
+    colsample_bytree = 1, colsample_bylevel = 1, lambda = 1, alpha = 1)
+)
+
+# Parameters dependent on data characteristics: svm: gamma, ranger: mtry. 
+# Not Specified: glmnet: alpha, xgboost: nrounds
 
 
 
