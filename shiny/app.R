@@ -68,12 +68,6 @@ server = function(input, output) {
     calculateTunability(resultsInput()$default, results[[input$algo]]$optimum)
   })
   
-  output$overallTunability = renderTable({
-    mean(overall())
-  }, colnames = FALSE, digits = 3)
-  
-  
-  
   tunabilityValues = reactive({
     calculateTunability(resultsInput()$default, resultsInput()$optimumHyperpar)
   })
@@ -86,14 +80,22 @@ server = function(input, output) {
    selectInput('scaled', 'Scaled', c(TRUE, FALSE), selected = FALSE, multiple = FALSE)
  })
    
- output$tunability = renderTable({
-   if (input$scaled == FALSE) {
-     data.frame(t(tunabilityValuesMean()))
+ output$overallTunability = renderTable({
+   if (input$scaled) {
+     mean(overall()/overall())
    } else {
+     mean(overall())
+   }
+ }, colnames = FALSE, digits = 3)
+ 
+ output$tunability = renderTable({
+   if (input$scaled) {
      data.frame(t(colMeans(tunabilityValues()/overall(), na.rm = T)))
+   } else {
+     data.frame(t(tunabilityValuesMean()))
    }
  }, digits = 3)
-  
+ 
  output$visual = renderUI({
    selectInput('visual', 'Visualization', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
  })
@@ -104,9 +106,17 @@ server = function(input, output) {
  
  output$plot3 = renderPlot({
    if (input$visual2 == "All") {
-     x = overall()
+     if (input$scaled) {
+       x = overall()/overall()
+     } else {
+       x = overall()
+     }
    } else {
-     x = tunabilityValues()[, input$visual2]
+     if (input$scaled) {
+       x = tunabilityValues()[, input$visual2]/overall()
+     } else {
+       x = tunabilityValues()[, input$visual2]
+     }
    }
    if (input$visual == "Density")
      plot(density(x), main = "Density of the Overall Tunability")
