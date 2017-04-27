@@ -135,7 +135,7 @@ server = function(input, output) {
   })
   
   output$combi = renderUI({
-    selectInput('combination', 'Tunability of combinations of two hyperparameters', 
+    selectInput('combination', 'Combinations of two hyperparameters', 
       c("Tunability", "Interaction effect", "Performance gain"), 
       selected = "Tunability", multiple = FALSE)
   })
@@ -177,13 +177,13 @@ ui = fluidPage(
           column(12, "Defaults", tableOutput("defaults"))), 
         fluidRow(
           column(12, "Tunability", 
-            column(12, fluidRow(uiOutput("scaled"))),
+            column(12, uiOutput("scaled")),
             column(12, fluidRow(
             column(1, "Overall mean tunability", tableOutput("overallTunability")), 
             column(11, "Hyperparameters", tableOutput("tunability"))
           )))),
-        fluidRow(column(6, uiOutput("visual")),
-          column(6, uiOutput("visual2"))),
+        column(6, uiOutput("visual")),
+          column(6, uiOutput("visual2")),
         plotOutput("plot3"),
         
         conditionalPanel(
@@ -197,8 +197,8 @@ ui = fluidPage(
       ))
       ),
       tabPanel("Interaction effects",
-      uiOutput("combi"),
-      tableOutput("combiTable")
+        column(12, uiOutput("combi")),
+        column(12, tableOutput("combiTable"))
       )
     )
   )
