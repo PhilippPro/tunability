@@ -19,7 +19,7 @@ calculateDefault = function(surrogates) {
   list(default = rnd.points[best,, drop = FALSE], result = preds[best, ])
 }
 
-#' Create default hyperparameter setting
+#' Calculate optimal hyperparameter values for an algorithm
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all
 calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.points = 10000) {

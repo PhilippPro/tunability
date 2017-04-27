@@ -45,13 +45,25 @@ server = function(input, output) {
   output$task = renderUI({
     selectInput('taski', 'Task', c("classification", "regression"), selected = "classification", multiple = FALSE)
   })
+
+  output$defaultchoice = renderUI({
+    selectInput('defaultchoice', 'Defaults', c("Calculated defaults", "Package defaults"), selected = "Calculated defaults", multiple = FALSE)
+  })
+  
+  resultsInput = reactive({
+   if (input$defaultchoice == "Calculated defaults") {
+     results[[input$algo]]
+   } else {
+     resultsPackageDefaults[[input$algo]]
+   }
+  })
   
   output$defaults = renderTable({
-    results[[input$algo]]$default$default
+    resultsInput()$default$default
   }, digits = 3)
   
   overall = reactive({
-    calculateTunability(results[[input$algo]]$default, results[[input$algo]]$optimum)
+    calculateTunability(resultsInput()$default, results[[input$algo]]$optimum)
   })
   
   output$overallTunability = renderTable({
@@ -61,11 +73,11 @@ server = function(input, output) {
   
   
   tunabilityValues = reactive({
-    calculateTunability(results[[input$algo]]$default, results[[input$algo]]$optimumHyperpar)
+    calculateTunability(resultsInput()$default, resultsInput()$optimumHyperpar)
   })
   
  tunabilityValuesMean = reactive({
-   colMeans(calculateTunability(results[[input$algo]]$default, results[[input$algo]]$optimumHyperpar))
+   colMeans(calculateTunability(resultsInput()$default, resultsInput()$optimumHyperpar))
  })
  
  output$scaled = renderUI({
@@ -117,7 +129,7 @@ server = function(input, output) {
   })
   
   output$combiTable <- renderTable({
-    tab = colMeans(results[[input$algo]]$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - mean(results[[input$algo]]$default$result)
+    tab = colMeans(resultsInput()$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - mean(resultsInput()$default$result)
     if(input$combination == "Tunability") {
       diag(tab) = tunabilityValuesMean()
     } else {
@@ -148,6 +160,7 @@ ui = fluidPage(
         "Performance on datasets", plotOutput("plot1"), 
         "Frequency of ranks", plotOutput("plot2")),
       tabPanel("Defaults and Tunability", 
+        column(12, uiOutput("defaultchoice")),
         fluidRow(
           column(12, "Defaults", tableOutput("defaults"))), 
         fluidRow(

@@ -26,7 +26,7 @@ tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"), ]
 tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 task.ids = unique(tbl.results$task.id)
 
-tbl.metaFeatures = getMetaFeaturesTable(local.db = NULL)
+tbl.metaFeatures = listOMLTasks(limit = 50000)
 
 
 convertMtry = function(tbl.results, tbl.hypPars) {
@@ -136,15 +136,17 @@ save(bmr_surrogate, results, file = "results.RData")
 save(surrogates_all, file = "surrogates.RData")
 
 # Calculations
+default = results$mlr.classif.glmnet$default
+optimum = results$mlr.classif.glmnet$optimum
+optimumHyperpar = results$mlr.classif.glmnet$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
 # scaled
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
-
 data.frame(t(colMeans(tunability)))
-tunability = colMeans(calculateTunability(results$mlr.classif.rpart$default, results$mlr.classif.rpart$optimumHyperpar))
 
+# Interaction
 # Bare values
 tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
   mean(results$mlr.classif.rpart$default$result)
@@ -160,8 +162,6 @@ colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm =
   mean(results$mlr.classif.rpart$default$result) - 
   outer(tunability, tunability, pmax)
 
-
-# Annex
 # Package defaults
 package.defaults = list(
   glmnet = data.frame(alpha = 1, lambda = 0), # no regularization
@@ -175,6 +175,41 @@ package.defaults = list(
 
 # Parameters dependent on data characteristics: svm: gamma, ranger: mtry. 
 # Not Specified: glmnet: alpha, xgboost: nrounds
+tbl.metaFeatures = listOMLTasks(limit = 50000)
+resultsPackageDefaults = list()
+
+set.seed(123)
+for(i in seq_along(learner.names)) {
+  print(i)
+  surrogates = surrogates_all[[i]]
+  def = package.defaults[[i]]
+  default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)
+  optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 10000, tbl.metaFeatures)
+  optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures)
+    resultsPackageDefaults[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
+}
+names(resultsPackageDefaults) = learner.names
+
+save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+
+for(i in seq_along(learner.names)) {
+  tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
+}
+
+# Calculations
+default = resultsPackageDefaults$mlr.classif.svm$default
+optimum = results$mlr.classif.svm$optimum
+optimumHyperpar = resultsPackageDefaults$mlr.classif.svm$optimumHyperpar
+overallTunability = calculateTunability(default, optimum)
+mean(overallTunability)
+
+tunability = calculateTunability(default, optimumHyperpar)
+
+data.frame(t(colMeans(tunability)))
+# scaled
+data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
 
 
+
+# Annex
