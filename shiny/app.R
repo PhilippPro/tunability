@@ -7,6 +7,8 @@ library(shiny)
 library(data.table)
 library(DT)
 library(mlr)
+library(devtools)
+load_all()
 load(file = "../results.RData")
 # surrogate models evtl. entfernen aus der Datei
 
