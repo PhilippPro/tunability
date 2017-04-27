@@ -172,7 +172,7 @@ ui = fluidPage(
         "Performance on datasets", plotOutput("plot1"), 
         "Frequency of ranks", plotOutput("plot2")),
       tabPanel("Defaults and Tunability", 
-        column(12, uiOutput("defaultchoice")),
+        fluidRow(column(12, uiOutput("defaultchoice"))),
         fluidRow(
           column(12, "Defaults", tableOutput("defaults"))), 
         fluidRow(
@@ -197,8 +197,8 @@ ui = fluidPage(
       ))
       ),
       tabPanel("Interaction effects",
-        column(12, uiOutput("combi")),
-        column(12, tableOutput("combiTable"))
+        fluidRow(column(12, uiOutput("combi")),
+        column(12, tableOutput("combiTable")))
       )
     )
   )
