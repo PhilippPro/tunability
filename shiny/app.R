@@ -1,4 +1,5 @@
 # library(ggplot2)
+#library(plotly)
 # library(tidyr)
 library(shiny)
 # library(shinydashboard)
@@ -8,6 +9,7 @@ library(data.table)
 library(DT)
 library(mlr)
 library(devtools)
+
 load_all()
 load(file = "../results.RData")
 # surrogate models evtl. entfernen aus der Datei
@@ -31,13 +33,21 @@ server = function(input, output) {
     perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
     perfs
   })
-  
+
+  output$logscale = renderUI({
+    selectInput('logscale', 'Logarithmic scale', c("No", "Yes"), selected = "No", multiple = FALSE)
+  })
+    
   output$bmr_result = renderTable({
-    bmrAggr()
+      bmrAggr() 
   }, digits = 5)
   
   output$plot1 = renderPlot({
-    plotBMRSummary(bmrInput())
+    if (input$logscale == "Yes") {
+      plotBMRSummary(bmrInput()) + scale_x_log10()
+    } else {
+      plotBMRSummary(bmrInput())
+    }
   })
   
   output$plot2 = renderPlot({
@@ -118,9 +128,9 @@ server = function(input, output) {
        x = tunabilityValues()[, input$visual2]
      }
    }
-   if (input$visual == "Density")
+   if (input$visual == "Density") {
      plot(density(x), main = "Density of the Overall Tunability")
-   else {
+   } else {
      bins = seq(min(x), max(x), length.out = input$bins + 1)
      hist(x, breaks = bins, main = "Histogram of the Overall Tunability")
    }
@@ -169,6 +179,7 @@ ui = fluidPage(
       tabPanel("Surrogate models comparison", 
         fluidRow(
           column(12, "Average mean of different surrogate models", tableOutput("bmr_result"))),
+          column(12, uiOutput("logscale")),
         "Performance on datasets", plotOutput("plot1"), 
         "Frequency of ranks", plotOutput("plot2")),
       tabPanel("Defaults and Tunability", 
