@@ -1,38 +1,25 @@
 library(devtools)
-# replace this soon
+load_all()
+# replace this by database from web?
 load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
 
-# This has to be replaced by the database extraction (Daniel) ----------------------------------------------
-library(devtools)
-load_all()
+# Database extraction
 
-tbl.results = getRunTable(run.tag = "botV1", numRuns = 200000)
-print(head(tbl.results))
+local.db = initializeLocalDatabase(path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", overwrite = FALSE)
 
-tbl.hypPars = getHyperparTable("botV1", excl.run.ids = NULL, numRuns = 200000, n = 1000)
-#save(tbl.results, tbl.hypPars, file = "hypPars.RData")
-tbl.hypPars3 = tbl.hypPars
-for(i in 3:50) {
-  tbl.hypPars2 = getHyperparTable("botV1", excl.run.ids = unique(tbl.hypPars3$run.id), numRuns = 200000, n = 10000)
-  print(head(tbl.hypPars2))
-  tbl.hypPars3 = rbind(tbl.hypPars3, tbl.hypPars2)
-  save(tbl.hypPars3, file = paste0("hypPars",i,".RData"))
-}
-
-print(table(tbl.hypPars3$hyperpar.name))
-
-tbl.hypPars = tbl.hypPars[which(tbl.hypPars$hyperpar.name != "verbose"), ]
-
-tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
-task.ids = unique(tbl.results$task.id)
-
+tbl.results = getRunTable(local.db = local.db, numRuns = 5000000)
+print(table(tbl.results$learner.name)/17) # Verteilung
+tbl.hypPars = getHyperparTable(local.db = local.db, numRuns = 1000000)
+print(table(tbl.hypPars$hyperpar.name))
 tbl.metaFeatures = listOMLTasks(limit = 50000)
+#tbl.metaFeatures = getMetaFeaturesTable(local.db = local.db)
+# Adjustment
+tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 
-
-convertMtry = function(tbl.results, tbl.hypPars) {
-  features1 = listOMLTasks(limit = 50000)
+convertMtry = function(tbl.results, tbl.hypPars, tbl.metaFeatures) {
+  features1 = tbl.metaFeatures
   results1 = tbl.results[, c("run.id", "task.id")]
-  features1 = features[, c("task.id", "number.of.features")]
+  features1 = features1[, c("task.id", "number.of.features")]
   results1 = results1 %>%
     left_join(., features1, by = "task.id") %>%
     select(., -task.id)
@@ -43,14 +30,11 @@ convertMtry = function(tbl.results, tbl.hypPars) {
   tbl.hypPars
 }
 
-tbl.hypPars = convertMtry(tbl.results, tbl.hypPars)
+tbl.hypPars = convertMtry(tbl.results, tbl.hypPars, tbl.metaFeatures)
 
 save(tbl.results, tbl.hypPars, file = "hypPars.RData")
 
 load("hypPars.RData")
-# -----------------------------------------------------------------------------------------------------------
-
-
 
 library(stringi)
 learner.names = paste0("mlr.", names(lrn.par.set))
@@ -117,7 +101,7 @@ for(i in seq_along(learner.names)) {
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
-  optimum = calculateDatasetOptimum(surrogates, hyperpar = "all", n.points = 100000)
+  optimum = calculateDatasetOptimum(surrogates, default, hyperpar = "all", n.points = 10000)
   # Tunability hyperparameter specific
   optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
   # Tunability for two hyperparameters
@@ -136,9 +120,9 @@ save(bmr_surrogate, results, file = "results.RData")
 save(surrogates_all, file = "surrogates.RData")
 
 # Calculations
-default = results$mlr.classif.glmnet$default
-optimum = results$mlr.classif.glmnet$optimum
-optimumHyperpar = results$mlr.classif.glmnet$optimumHyperpar
+default = results$mlr.classif.ranger$default
+optimum = results$mlr.classif.ranger$optimum
+optimumHyperpar = results$mlr.classif.ranger$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
@@ -167,7 +151,7 @@ package.defaults = list(
   glmnet = data.frame(alpha = 1, lambda = 0), # no regularization
   rpart = data.frame(cp = 0.01, maxdepth = 30, minbucket = 7, minsplit = 20),
   kknn = data.frame(k = 7),
-  svm = data.frame(kernel = "radial", cost = 1, gamma = 1, degree = -11), 
+  svm = data.frame(kernel = "radial", cost = 1, gamma = 1, degree = 3), 
   ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = FALSE),
   xgboost = data.frame(nrounds = 500, eta = 0.3, subsample = 1, booster = "gbtree", max_depth = 6, min_child_weight = 1,
     colsample_bytree = 1, colsample_bylevel = 1, lambda = 1, alpha = 1)
@@ -192,14 +176,10 @@ names(resultsPackageDefaults) = learner.names
 
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
-for(i in seq_along(learner.names)) {
-  tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
-}
-
 # Calculations
-default = resultsPackageDefaults$mlr.classif.svm$default
-optimum = results$mlr.classif.svm$optimum
-optimumHyperpar = resultsPackageDefaults$mlr.classif.svm$optimumHyperpar
+default = resultsPackageDefaults$mlr.classif.ranger$default
+optimum = results$mlr.classif.ranger$optimum
+optimumHyperpar = resultsPackageDefaults$mlr.classif.ranger$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 

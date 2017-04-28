@@ -1,5 +1,5 @@
- library(ggplot2)
-#library(plotly)
+library(ggplot2)
+library(plotly)
 # library(tidyr)
 library(shiny)
 # library(shinydashboard)
@@ -9,10 +9,10 @@ library(data.table)
 library(DT)
 library(mlr)
 library(devtools)
+library(mlr)
 
 load_all()
 load(file = "../results.RData")
-# surrogate models evtl. entfernen aus der Datei
 
 server = function(input, output) {
   
@@ -37,21 +37,28 @@ server = function(input, output) {
   output$logscale = renderUI({
     selectInput('logscale', 'Logarithmic scale', c("No", "Yes"), selected = "No", multiple = FALSE)
   })
+  
+  output$bmr_measure = renderUI({
+    measures = getBMRMeasureIds(bmrInput())
+    selectInput('bmr_measure', 'Measure', measures, selected = measures[1], multiple = FALSE)
+  })
     
   output$bmr_result = renderTable({
       bmrAggr() 
   }, digits = 5)
   
   output$plot1 = renderPlot({
-    if (input$logscale == "Yes") {
-      plotBMRSummary(bmrInput()) + scale_x_log10()
+    measure = bmrInput()$measures[[which(sapply(bmrInput()$measures, `[[`, 1) == input$bmr_measure)]]
+  if (input$logscale == "Yes") {
+      plotBMRSummary(bmrInput(), measure = measure) + scale_x_log10() + ggtitle("Performance on datasets")
     } else {
-      plotBMRSummary(bmrInput())
+      plotBMRSummary(bmrInput(), measure = measure) + ggtitle("Performance on datasets")
     }
   })
   
   output$plot2 = renderPlot({
-    plotBMRRanksAsBarChart(bmrInput(), pos = "stack")
+    measure = bmrInput()$measures[[which(sapply(bmrInput()$measures, `[[`, 1) == input$bmr_measure)]]
+    plotBMRRanksAsBarChart(bmrInput(), measure = measure, pos = "stack") + ggtitle("Frequency of ranks")
   })
   
   output$task = renderUI({
@@ -114,7 +121,7 @@ server = function(input, output) {
    selectInput('visual2', 'Hyperparameter', c("All", names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
  })
  
- output$plot3 = renderPlot({
+ output$plot3 = renderPlotly({
    if (input$visual2 == "All") {
      if (input$scaled) {
        x = overall()/overall()
@@ -129,10 +136,11 @@ server = function(input, output) {
      }
    }
    if (input$visual == "Density") {
-     plot(density(x), main = "Density of the Overall Tunability")
-   } else {
-     bins = seq(min(x), max(x), length.out = input$bins + 1)
-     hist(x, breaks = bins, main = "Histogram of the Overall Tunability")
+     ggplot(data.frame(x), aes(x)) + geom_density() + ggtitle("Density of the Overall Tunability")
+     } else {
+     ggplot(data.frame(x), aes(x)) + geom_histogram(bins = input$bins, stat = "bin", fill = "green", colour = "black") + 
+         xlim(range(x)) + ggtitle("Histogram of the Overall Tunability")
+       
    }
  })
  
@@ -179,9 +187,11 @@ ui = fluidPage(
       tabPanel("Surrogate models comparison", 
         fluidRow(
           column(12, "Average mean of different surrogate models", tableOutput("bmr_result"))),
-          column(12, uiOutput("logscale")),
-        "Performance on datasets", plotOutput("plot1"), 
-        "Frequency of ranks", plotOutput("plot2")),
+        fluidRow(
+          column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
+        plotOutput("plot1"),
+        plotOutput("plot2")
+      ),
       tabPanel("Defaults and Tunability", 
         fluidRow(column(12, uiOutput("defaultchoice"))),
         fluidRow(
@@ -193,9 +203,9 @@ ui = fluidPage(
             column(1, "Overall mean tunability", tableOutput("overallTunability")), 
             column(11, "Hyperparameters", tableOutput("tunability"))
           )))),
-        column(6, uiOutput("visual")),
-          column(6, uiOutput("visual2")),
-        plotOutput("plot3"),
+        fluidRow(column(6, uiOutput("visual")),
+          column(6, uiOutput("visual2"))),
+        fluidRow(plotlyOutput("plot3")),
         
         conditionalPanel(
           condition = "input.visual== 'Histogram'",

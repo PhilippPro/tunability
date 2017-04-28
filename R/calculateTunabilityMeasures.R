@@ -28,6 +28,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
   if (hyperpar == "all") {
     rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
     rnd.points = deleteNA(rnd.points)
+    rnd.points = rbind(default$default, rnd.points)
     
     preds = matrix(NA, nrow(rnd.points), length(surr))
     for(i in seq_along(surr)) {
@@ -115,13 +116,13 @@ generateRandomDesignWithDefaults = function(n.points, param.set, trafo, default,
   param.set1 = param.set
   # If there are dependent variables include them
   if(any(subset %in% reqPar)) {
-    subset = unique(c(subset, names(param.set$pars)[reqPar %in% subset]))
+    subset2 = unique(c(subset, names(param.set$pars)[reqPar %in% subset]))
   }
-  param.set1$pars = param.set$pars[subset]
+  
+  param.set1$pars = param.set$pars[subset2]
   rnd.points1 = rnd.points.def
   
   # If one parameter is required by another set it to the specific value
-
   for(m in seq_along(subset)) {
   if(!is.null(param.set1$pars[[m]]$requires)) {
     reqParSubset = as.character(param.set1$pars[[m]]$requires[2])
@@ -138,9 +139,18 @@ generateRandomDesignWithDefaults = function(n.points, param.set, trafo, default,
   }
   }
   
-  
   rnd.points = generateRandomDesign(n.points, param.set1, trafo = TRUE)
-  rnd.points1[, subset] = rnd.points
+  rnd.points1[, subset2] = rnd.points
+  
+  # Set the dependent values back to default
+  back_to_default = subset2[!(subset2 %in% subset)]
+  for(q in back_to_default) {
+    if (q == "degree") {  # Spezialfall svm, da wir hier keinen sinnvollen Default haben und den Package default nehmen
+      rnd.points1[!is.na(rnd.points1[,q]), q] = 3
+    } else {
+      rnd.points1[!is.na(rnd.points1[,q]), q] = default$default[,q]
+    }
+  }
   # Add the default
   rnd.points1 = rbind(default$default, rnd.points1)
   rnd.points1
