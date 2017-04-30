@@ -117,6 +117,8 @@ generateRandomDesignWithDefaults = function(n.points, param.set, trafo, default,
   # If there are dependent variables include them
   if(any(subset %in% reqPar)) {
     subset2 = unique(c(subset, names(param.set$pars)[reqPar %in% subset]))
+  } else {
+    subset2 = subset
   }
   
   param.set1$pars = param.set$pars[subset2]

@@ -1,8 +1,8 @@
 library(devtools)
-load_all()
 # replace this by database from web?
 load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
-
+load_all("C:/Promotion/Hyperparameters/OMLbots")
+load_all()
 # Database extraction
 
 local.db = initializeLocalDatabase(path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", overwrite = FALSE)
@@ -101,7 +101,7 @@ for(i in seq_along(learner.names)) {
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
-  optimum = calculateDatasetOptimum(surrogates, default, hyperpar = "all", n.points = 10000)
+  optimum = calculateDatasetOptimum(surrogates, default, hyperpar = "all", n.points = 100000)
   # Tunability hyperparameter specific
   optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
   # Tunability for two hyperparameters
@@ -132,19 +132,19 @@ data.frame(t(colMeans(tunability)))
 
 # Interaction
 # Bare values
-tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result)
-diag(tab) = tunability
+tab = colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.ranger$default$result)
+diag(tab) = colMeans(tunability)
 colnames(tab) = rownames(tab) = names(tunability)
 tab
 # Interaction
-colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result) - 
-  outer(tunability, tunability, '+')
+colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.ranger$default$result) - 
+  outer(colMeans(tunability), colMeans(tunability), '+')
 # Performance gain
-colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result) - 
-  outer(tunability, tunability, pmax)
+colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.ranger$default$result) - 
+  outer(colMeans(tunability), colMeans(tunability), pmax)
 
 # Package defaults
 package.defaults = list(
