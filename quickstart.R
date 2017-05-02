@@ -174,6 +174,9 @@ for(i in seq_along(learner.names)) {
 }
 names(resultsPackageDefaults) = learner.names
 
+resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
+resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
+
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations

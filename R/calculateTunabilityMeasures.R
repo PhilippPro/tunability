@@ -19,6 +19,19 @@ calculateDefault = function(surrogates) {
   list(default = rnd.points[best,, drop = FALSE], result = preds[best, ])
 }
 
+#' Calculate performance of hyperparameter setting
+#' @param par.set Parameter setting
+calculatePerformance = function(surrogates, par.set) {
+  surr = surrogates$surrogates
+  preds = numeric(length(surr))
+  for(i in seq_along(surr)) {
+    print(paste("surrogate predict: task", i, "of", length(surr)))
+    preds[i] = predict(surr[[i]], newdata = par.set)$data$response
+  }
+  # Best default
+  list(default = default, result = preds)
+}
+
 #' Calculate optimal hyperparameter values for an algorithm
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all

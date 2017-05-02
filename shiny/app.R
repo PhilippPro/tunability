@@ -13,6 +13,7 @@ library(mlr)
 
 load_all()
 load(file = "../results.RData")
+#load(file = "../surrogates.RData")
 
 server = function(input, output) {
   
@@ -140,16 +141,23 @@ server = function(input, output) {
      } else {
      ggplot(data.frame(x), aes(x)) + geom_histogram(bins = input$bins, stat = "bin", fill = "green", colour = "black") + 
          xlim(range(x)) + ggtitle("Histogram of the Overall Tunability")
-       
    }
  })
  
+ output$quantile = renderUI({
+   numericInput('quantile', 'Quantile for Tuning Space Calculation', 0.1, min = 0, max = 1)
+ })
+ 
+ tuningSpace = reactive({
+   calculateTuningSpace(results[[input$algo]]$optimum, quant = input$quantile)
+ })
+
   output$tuningSpaceNumerics = renderTable({
-    results[[input$algo]]$tuningSpace$numerics
+    tuningSpace()$numerics
   }, rownames = TRUE, digits = 3)
   
   output$tuningSpaceFactors = renderTable({
-    results[[input$algo]]$tuningSpace$factors
+    tuningSpace()$factors
   })
   
   output$combi = renderUI({
@@ -172,6 +180,42 @@ server = function(input, output) {
     colnames(tab) = rownames(tab) = names(tunabilityValuesMean())
     tab
   }, rownames = TRUE, digits = 4)
+  
+  
+  output$par.set = renderUI({
+    tagList(makeLearnerParamUI(results[[input$algo]]))
+  })
+  
+
+  output$performanceHypParSetting = renderTable({
+    var_names = colnames(results[[input$algo]]$optimum$par.sets)
+    par.set = numeric()
+    for(i in 1:length(var_names)) {
+      par.set[i] = input[[var_names[i]]]
+    }
+    par.set
+    #calculatePerformance(surrogates_all[[input$algo]], par.set)$preds
+  })
+  # performanceHypParSetting = reactive({
+  #   calculatePerformance(surrogates_all[[input$algo]], par.set)
+  # })
+  
+}
+
+makeLearnerParamUI(results_algo)
+
+makeLearnerParamUI = function(results_algo) {
+  par.set = results_algo$ optimum$par.sets
+  inp = list()
+  for(i in 1:ncol(par.set)) {
+  par.type = class(par.set[,i])
+  par.id = names(par.set)[i]
+  if (par.type == "numeric")
+    inp[[i]] = numericInput(par.id, par.id, results_algo$default$default[i])
+  if (par.type == "factor")
+    inp[[i]] = selectInput(par.id, par.id, choices = unique(par.set[,i]), selected = results_algo$default$default[i])
+  }
+  inp
 }
 
 ui = fluidPage(
@@ -211,8 +255,9 @@ ui = fluidPage(
           condition = "input.visual== 'Histogram'",
           sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
         ),
-      
+        
       fluidRow(column(12, "Tuning Space",
+        column(12, uiOutput("quantile")),
         column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
         column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
       ))
@@ -220,7 +265,10 @@ ui = fluidPage(
       tabPanel("Interaction effects",
         fluidRow(column(12, uiOutput("combi")),
         column(12, tableOutput("combiTable")))
-      )
+      ),
+      tabPanel("Arbitrary Parameter setting", 
+        fluidRow(column(12, uiOutput("par.set")), 
+        column(12, tableOutput("performanceHypParSetting"))))
     )
   )
 )
