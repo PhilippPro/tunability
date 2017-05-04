@@ -202,8 +202,6 @@ server = function(input, output) {
   
 }
 
-makeLearnerParamUI(results_algo)
-
 makeLearnerParamUI = function(results_algo) {
   par.set = results_algo$ optimum$par.sets
   inp = list()
