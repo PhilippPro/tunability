@@ -37,7 +37,7 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   }
   mlr.lrns = surrogate.mlr.lrns
   measures = list(mse, rsq, kendalltau, spearmanrho)
-  rdesc = makeResampleDesc("RepCV", reps = 2, folds = 10)
+  rdesc = makeResampleDesc("RepCV", reps = 10, folds = 10)
   mlr.benchmark = benchmark(mlr.lrns, mlr.tasks, resamplings = rdesc, keep.pred = FALSE, models = FALSE, measures = measures)
   
   return(mlr.benchmark)

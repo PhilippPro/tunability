@@ -42,16 +42,16 @@ learner.names = stri_sub(learner.names, 1, -5)
 
 # Compare different surrogate models
 surrogate.mlr.lrns = list(
+  makeLearner("regr.lm"),
   makeLearner("regr.rpart"),
+  makeLearner("regr.kknn"),
   makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE)),
+  makeLearner("regr.cubist")
   #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
   #makeLearner("regr.svm"),
   #makeLearner("regr.bartMachine"),
-  makeLearner("regr.cubist"),
   #makeLearner("regr.glmnet"), 
-  makeLearner("regr.kknn") ,
   #makeLearner("regr.brnn"), # too many errors
-  makeLearner("regr.lm")
   #makeLearner("regr.km")
 )
 

@@ -30,7 +30,7 @@ server = function(input, output) {
   bmrAggr = reactive({
     perfs = data.table(getBMRAggrPerformances(bmrInput(), as.df = T, drop = T))[, -"task.id"]
     perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
-      spearmanrho = spearmanrho.test.mean),function(x) mean(x, na.rm = T)), by = "learner.id"])
+      spearmanrho = spearmanrho.test.mean),function(x) mean(x, na.rm = F)), by = "learner.id"])
     perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
     perfs
   })
