@@ -12,24 +12,9 @@ print(table(tbl.results$learner.name)/17) # Verteilung
 tbl.hypPars = getHyperparTable(local.db = local.db, numRuns = 1000000)
 print(table(tbl.hypPars$hyperpar.name))
 tbl.metaFeatures = listOMLTasks(limit = 50000)
-#tbl.metaFeatures = getMetaFeaturesTable(local.db = local.db)
-# Adjustment
 tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 
-convertMtry = function(tbl.results, tbl.hypPars, tbl.metaFeatures) {
-  features1 = tbl.metaFeatures
-  results1 = tbl.results[, c("run.id", "task.id")]
-  features1 = features1[, c("task.id", "number.of.features")]
-  results1 = results1 %>%
-    left_join(., features1, by = "task.id") %>%
-    select(., -task.id)
-  hypPars1 = tbl.hypPars[tbl.hypPars$hyperpar.name == "mtry", ] 
-  hypPars1 = left_join(hypPars1, results1, by = "run.id")
-  hypPars1 = unique(hypPars1)
-  tbl.hypPars[tbl.hypPars$hyperpar.name == "mtry", ]$hyperpar.value = as.numeric(hypPars1$hyperpar.value) / hypPars1$number.of.features
-  tbl.hypPars
-}
-
+load_all()
 tbl.hypPars = convertMtry(tbl.results, tbl.hypPars, tbl.metaFeatures)
 
 save(tbl.results, tbl.hypPars, file = "hypPars.RData")

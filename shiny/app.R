@@ -9,7 +9,6 @@ library(data.table)
 library(DT)
 library(mlr)
 library(devtools)
-library(mlr)
 
 load_all()
 load(file = "../results.RData")
