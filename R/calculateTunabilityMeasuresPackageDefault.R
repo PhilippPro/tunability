@@ -26,7 +26,6 @@ convertPackageDefault = function(def, surr, tbl.metaFeatures) {
   def
 }
 
-
 #' Calculate optimal hyperparameter values for an algorithm
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all

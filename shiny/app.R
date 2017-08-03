@@ -11,7 +11,7 @@ library(mlr)
 library(devtools)
 
 load_all()
-load(file = "../results.RData")
+load(file = "./results.RData")
 #load(file = "../surrogates.RData")
 
 server = function(input, output) {
@@ -23,7 +23,10 @@ server = function(input, output) {
   })
   
   bmrInput = reactive({
-    bmr_surrogate[[which(learner.names == input$algo)]]
+    inputi = "mlr.classif.glmnet"
+    if(!is.null(input$algo))
+      inputi = input$algo
+    bmr_surrogate[[which(learner.names == inputi)]]
   })
   
   bmrAggr = reactive({

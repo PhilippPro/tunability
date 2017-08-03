@@ -1,20 +1,20 @@
 library(devtools)
 # replace this by database from web?
 load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
-load_all("C:/Promotion/Hyperparameters/OMLbots")
+#load_all("C:/Promotion/Hyperparameters/OMLbots")
 load_all()
+lrn.par.set = getMultipleLearners()
 # Database extraction
 
 local.db = initializeLocalDatabase(path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", overwrite = FALSE)
 
-tbl.results = getRunTable(local.db = local.db, numRuns = 5000000)
+tbl.results = getRunTable(local.db = local.db, numRuns = 10000000)
 print(table(tbl.results$learner.name)/17) # Verteilung
-tbl.hypPars = getHyperparTable(local.db = local.db, numRuns = 1000000)
+tbl.hypPars = getHyperparTable(local.db = local.db, numRuns = 3000000)
 print(table(tbl.hypPars$hyperpar.name))
 tbl.metaFeatures = listOMLTasks(limit = 50000)
 tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
 
-load_all()
 tbl.hypPars = convertMtry(tbl.results, tbl.hypPars, tbl.metaFeatures)
 
 save(tbl.results, tbl.hypPars, file = "hypPars.RData")
@@ -25,7 +25,9 @@ library(stringi)
 learner.names = paste0("mlr.", names(lrn.par.set))
 learner.names = stri_sub(learner.names, 1, -5)
 
-# Compare different surrogate models
+
+
+################################ Compare different surrogate models
 surrogate.mlr.lrns = list(
   makeLearner("regr.lm"),
   makeLearner("regr.rpart"),
@@ -44,7 +46,7 @@ bmr = list()
 
 set.seed(123)
 library("parallelMap")
-parallelStartSocket(9)
+parallelStartSocket(8)
 for (i in seq_along(learner.names)) {
   print(i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
@@ -68,19 +70,19 @@ save(bmr_surrogate, file = "results.RData")
 
 # Best model in general: ranger, cubist
 
-# Calculate tunability measures
-surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
 
+
+################################# Calculate tunability measures
+surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
 results = surrogates_all = list()
 
 set.seed(123)
 for(i in seq_along(learner.names)) {
   print(i)
-
+  set.seed(124)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrn)
-  
   #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
   
   # Default calculation
@@ -88,7 +90,7 @@ for(i in seq_along(learner.names)) {
   # Tunability overall
   optimum = calculateDatasetOptimum(surrogates, default, hyperpar = "all", n.points = 100000)
   # Tunability hyperparameter specific
-  optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 10000)
+  optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 100000)
   # Tunability for two hyperparameters
   optimumTwoHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "two", n.points = 10000)
   # Tuning space
@@ -153,7 +155,7 @@ for(i in seq_along(learner.names)) {
   surrogates = surrogates_all[[i]]
   def = package.defaults[[i]]
   default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)
-  optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 10000, tbl.metaFeatures)
+  optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures)
   optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures)
     resultsPackageDefaults[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
 }
