@@ -48,19 +48,46 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @return [\code{data.frame}] Complete table used for creating the surrogate model 
-makeBotTable = function(measure.name, learner.name, tbl.results, tbl.hypPars){
+makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set) {
   
   measure.name.filter = measure.name
-  learner.name.fiter = learner.name
-  bot.table = tbl.results %>% 
-    filter(., measure.name == measure.name.filter & learner.name == learner.name.fiter) %>%
-    inner_join(., tbl.hypPars, by = "run.id") %>%
-    select(., -measure.name, -flow.name, -flow.id, -flow.source,
-      -setup.id, -data.name, -upload.time, -flow.version, -learner.name) %>%
-    spread(., key = hyperpar.name, value = hyperpar.value, convert = TRUE) %>%
-    select(., -run.id)
+  
+  tbl.hypPars.learner = tbl.hypPars[tbl.hypPars$fullName == learner.name, ]
+  tbl.hypPars.learner = spread(tbl.hypPars.learner, name, value)
+  tbl.hypPars.learner = data.frame(tbl.hypPars.learner)
+  # Convert the columns to the specific classes
+  params = getParamIds(param.set)
+  param_types = getParamTypes(param.set)
+  for(i in seq_along(params))
+    tbl.hypPars.learner[, params[i]] = conversion_function(tbl.hypPars.learner[, params[i]], param_types[i])
+  
+  bot.table = inner_join(tbl.results, tbl.hypPars.learner, by = "setup") %>%
+    select(., -run_id, -setup, -fullName)
+
+  if(learner.name == "mlr.classif.ranger"){
+    n_feats = filter(tbl.metaFeatures, quality == "NumberOfFeatures") %>%
+      select(., -quality)
+    n_feats$value = as.numeric(n_feats$value)
+    
+    bot.table = inner_join(bot.table, n_feats, by = "data_id")
+    bot.table$mtry = bot.table$mtry/bot.table$value
+    bot.table = bot.table %>% select(., -value)
+  }
+  
+  bot.table = inner_join(tbl.results, tbl.hypPars.learner, by = "setup") %>%
+    select(., -data_id)
+  
+  colnames(bot.table)[4] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
-  bot.table = convertDataFrameCols(bot.table, chars.as.factor = TRUE)
   
   return(bot.table)
+}
+
+
+conversion_function = function(x, param_type) {
+  if(param_type %in% c("integer", "numeric", "numericvector")) 
+    x = as.numeric(x)
+  if(param_type %in% c("character", "logical", "factor"))
+    x = as.factor(x)
+  return(x)
 }

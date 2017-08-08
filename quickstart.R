@@ -5,27 +5,16 @@ load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
 load_all()
 lrn.par.set = getMultipleLearners()
 # Database extraction
+path = paste0("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", "/mlrRandomBotDatabaseSnapshot.db")
+local.db = src_sqlite(path, create = FALSE)
 
-local.db = initializeLocalDatabase(path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", overwrite = FALSE)
-
-tbl.results = getRunTable(local.db = local.db, numRuns = 10000000)
-print(table(tbl.results$learner.name)/17) # Verteilung
-tbl.hypPars = getHyperparTable(local.db = local.db, numRuns = 3000000)
-print(table(tbl.hypPars$hyperpar.name))
-tbl.metaFeatures = listOMLTasks(limit = 50000)
-tbl.results = tbl.results[tbl.results$run.id %in% unique(tbl.hypPars$run.id), ]
-
-tbl.hypPars = convertMtry(tbl.results, tbl.hypPars, tbl.metaFeatures)
-
-save(tbl.results, tbl.hypPars, file = "hypPars.RData")
-
-load("hypPars.RData")
+tbl.results = collect(tbl(local.db, sql("SELECT * FROM [tbl.results]")), n = Inf)
+tbl.metaFeatures = collect(tbl(local.db, sql("SELECT * FROM [tbl.metaFeatures]")), n = Inf)
+tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf)
 
 library(stringi)
 learner.names = paste0("mlr.", names(lrn.par.set))
 learner.names = stri_sub(learner.names, 1, -5)
-
-
 
 ################################ Compare different surrogate models
 surrogate.mlr.lrns = list(
@@ -50,7 +39,7 @@ parallelStartSocket(8)
 for (i in seq_along(learner.names)) {
   print(i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
+    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
 }
 
 names(bmr) = learner.names
