@@ -13,11 +13,12 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
   tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100) {
   
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
-  
   #train mlr model on full table for measure
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set)
+  
   task.data = deleteNA(task.data)
   
+  # Only datasets with more than 100 results
   bigger = names(table(task.data$task_id))[which(table(task.data$task_id) > min.experiments)]
   task.data = task.data[task.data$task_id %in% bigger,]
   

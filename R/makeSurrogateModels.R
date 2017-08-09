@@ -8,32 +8,33 @@
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
-makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, tbl.hypPars, 
-  tbl.metaFeatures, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100) {
+makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
+  tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100) {
+
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
-  
   #train mlr model on full table for measure
-  mlr.mod.measure = list()
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.hypPars)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set)
 
   task.data = deleteNA(task.data)
   
-  bigger = names(table(task.data$task.id))[which(table(task.data$task.id) > min.experiments)]
-  task.data = task.data[task.data$task.id %in% bigger,]
+  # Only datasets with more than 100 results
+  bigger = names(table(task.data$task_id))[which(table(task.data$task_id) > min.experiments)]
+  task.data = task.data[task.data$task_id %in% bigger,]
 
   # get specific task ids
   if(!is.null(task.ids)) {
-    uni = unique(task.data$task.id)
+    uni = unique(task.data$task_id)
     task.ids = uni[uni %in% task.ids]
   } else {
-    task.ids = unique(task.data$task.id)
+    task.ids = unique(task.data$task_id)
   }
   
+  mlr.mod.measure = list()
   for(i in seq_along(task.ids)) {
     print(paste("surrogate train: task", i, "of", length(task.ids)))
     task.idi = task.ids[i]
     
-    mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task.id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
+    mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task_id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
     mlr.lrn = surrogate.mlr.lrn
     mlr.mod.measure[[i]] = train(mlr.lrn, mlr.task.measure)
   }

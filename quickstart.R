@@ -33,13 +33,14 @@ surrogate.mlr.lrns = list(
 
 bmr = list()
 
-set.seed(123)
 library("parallelMap")
 parallelStartSocket(8)
 for (i in seq_along(learner.names)) {
   print(i)
+  set.seed(123 + i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
+  gc()
 }
 
 names(bmr) = learner.names
@@ -60,20 +61,22 @@ save(bmr_surrogate, file = "results.RData")
 # Best model in general: ranger, cubist
 
 
-
 ################################# Calculate tunability measures
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
 results = surrogates_all = list()
 
-set.seed(123)
 for(i in seq_along(learner.names)) {
   print(i)
-  set.seed(124)
+  set.seed(124 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrn)
-  #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
   
+  
+  surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
+  #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
+
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
@@ -88,6 +91,7 @@ for(i in seq_along(learner.names)) {
   surrogates_all[[i]] = surrogates
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
+  gc()
 }
 names(results) = learner.names
 names(surrogates_all) = learner.names
