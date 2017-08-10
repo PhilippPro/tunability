@@ -14,7 +14,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   #train mlr model on full table for measure
   task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set)
-
+  task.data = data.frame(task.data)
   task.data = deleteNA(task.data)
   
   # Only datasets with more than 100 results
@@ -86,7 +86,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
 conversion_function = function(x, param_type) {
   if(param_type %in% c("integer", "numeric", "numericvector")) 
     x = as.numeric(x)
-  if(param_type %in% c("character", "logical", "factor"))
+  if(param_type %in% c("character", "logical", "factor", "discrete"))
     x = as.factor(x)
   return(x)
 }
