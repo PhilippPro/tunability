@@ -51,8 +51,6 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
 #' @return [\code{data.frame}] Complete table used for creating the surrogate model 
 makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set) {
   
-  measure.name.filter = measure.name
-  
   tbl.hypPars.learner = tbl.hypPars[tbl.hypPars$fullName == learner.name, ]
   tbl.hypPars.learner = spread(tbl.hypPars.learner, name, value)
   tbl.hypPars.learner = data.frame(tbl.hypPars.learner)
@@ -75,7 +73,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
     bot.table = bot.table %>% select(., -value)
   }
   
-  bot.table = inner_join(tbl.results, tbl.hypPars.learner, by = "setup") %>%
+  bot.table = bot.table %>%
     select(., -data_id)
   
   colnames(bot.table)[4] = "measure.value"
