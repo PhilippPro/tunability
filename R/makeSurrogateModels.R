@@ -76,7 +76,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
   bot.table = bot.table %>%
     select(., -data_id)
   
-  colnames(bot.table)[4] = "measure.value"
+  colnames(bot.table)[2] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
   return(bot.table)
