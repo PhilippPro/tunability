@@ -1,11 +1,12 @@
 library(devtools)
 # replace this by database from web?
-load_all("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots")
-#load_all("C:/Promotion/Hyperparameters/OMLbots")
+OMLbots_path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots"
+# OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
+load_all(OMLbots_path)
 load_all()
 lrn.par.set = getMultipleLearners()
 # Database extraction
-path = paste0("/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots", "/mlrRandomBotDatabaseSnapshot.db")
+path = paste0(OMLbots_path, "/mlrRandomBotDatabaseSnapshot.db")
 local.db = src_sqlite(path, create = FALSE)
 
 tbl.results = collect(tbl(local.db, sql("SELECT * FROM [tbl.results]")), n = Inf)
