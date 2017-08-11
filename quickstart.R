@@ -71,10 +71,6 @@ for(i in seq_along(learner.names)) {
   set.seed(124 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.hypPars, tbl.metaFeatures = NULL, lrn.par.set, surrogate.mlr.lrn)
-  
-  
-  surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
   #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
 
@@ -97,8 +93,9 @@ for(i in seq_along(learner.names)) {
 names(results) = learner.names
 names(surrogates_all) = learner.names
 
-save(bmr_surrogate, results, file = "results.RData")
-save(surrogates_all, file = "surrogates.RData")
+save(results, file = "results.RData")
+#save(bmr_surrogate, results, file = "results.RData")
+#save(surrogates_all, file = "surrogates.RData")
 
 # Calculations
 default = results$mlr.classif.ranger$default
@@ -158,7 +155,8 @@ names(resultsPackageDefaults) = learner.names
 resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
-save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+save(results, resultsPackageDefaults, file = "results.RData")
+#save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
 default = resultsPackageDefaults$mlr.classif.ranger$default
