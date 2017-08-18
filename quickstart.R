@@ -63,12 +63,12 @@ save(bmr_surrogate, file = "results.RData")
 
 
 ################################# Calculate tunability measures
-surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
+surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = surrogates_all = list()
 
 for(i in seq_along(learner.names)) {
   print(i)
-  set.seed(124 + i)
+    set.seed(199 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
@@ -85,7 +85,8 @@ for(i in seq_along(learner.names)) {
   # Tuning space
   tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
     
-  surrogates_all[[i]] = surrogates
+  if(i != 6)
+    surrogates_all[[i]] = surrogates
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
   gc()
@@ -95,7 +96,8 @@ names(surrogates_all) = learner.names
 
 save(results, file = "results.RData")
 #save(bmr_surrogate, results, file = "results.RData")
-#save(surrogates_all, file = "surrogates.RData")
+save(surrogates_all, file = "surrogates.RData")
+save(surrogates, file = "surrogates6.RData")
 
 # Calculations
 default = results$mlr.classif.ranger$default
@@ -104,9 +106,10 @@ optimumHyperpar = results$mlr.classif.ranger$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
+data.frame(t(colMeans(tunability)))
 # scaled
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
-data.frame(t(colMeans(tunability)))
+
 
 # Interaction
 # Bare values
@@ -137,12 +140,13 @@ package.defaults = list(
 
 # Parameters dependent on data characteristics: svm: gamma, ranger: mtry. 
 # Not Specified: glmnet: alpha, xgboost: nrounds
-tbl.metaFeatures = listOMLTasks(limit = 50000)
 resultsPackageDefaults = list()
+# that does not work cause of memory limit
+surrogates_all[[6]] = surrogates
 
-set.seed(123)
 for(i in seq_along(learner.names)) {
   print(i)
+  set.seed(123 + i)
   surrogates = surrogates_all[[i]]
   def = package.defaults[[i]]
   default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)

@@ -15,8 +15,14 @@ calculatePackageDefaultPerformance = function(surrogates, def, tbl.metaFeatures)
 }
 
 convertPackageDefault = function(def, surr, tbl.metaFeatures) {
-  task_id = surr$task.desc$id
-  p = tbl.metaFeatures[tbl.metaFeatures$task.id == task_id,]$number.of.features
+  task_idi = surr$task.desc$id
+  
+  matching_task_data = unique(tbl.results[, c("task_id", "data_id")])
+  n_feats = filter(tbl.metaFeatures, quality == "NumberOfFeatures") %>%
+    select(., -quality) %>%
+    inner_join(., matching_task_data, by = "data_id")
+  p = as.numeric(filter(n_feats, task_id == task_idi)$value)
+
   if ("mtry" %in% names(def)) {
     def$mtry = floor(sqrt(p))/p
   }

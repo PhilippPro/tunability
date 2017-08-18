@@ -37,6 +37,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
     mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task_id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
     mlr.lrn = surrogate.mlr.lrn
     mlr.mod.measure[[i]] = train(mlr.lrn, mlr.task.measure)
+    gc()
   }
   return(list(surrogates = mlr.mod.measure, param.set = param.set))
 }
