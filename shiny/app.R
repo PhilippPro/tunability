@@ -11,7 +11,7 @@ library(mlr)
 library(devtools)
 
 load_all()
-load(file = "./results.RData")
+load(file = "../results.RData")
 #load(file = "../surrogates.RData")
 
 server = function(input, output) {
@@ -117,7 +117,7 @@ server = function(input, output) {
  }, digits = 3)
  
  output$visual = renderUI({
-   selectInput('visual', 'Visualization', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
+   selectInput('visual', 'Visualization of the tunability', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
  })
  
  output$visual2 = renderUI({
@@ -239,28 +239,31 @@ ui = fluidPage(
       tabPanel("Defaults and Tunability", 
         fluidRow(column(12, uiOutput("defaultchoice"))),
         fluidRow(
-          column(12, "Defaults", tableOutput("defaults"))), 
+          column(12, h4("Defaults"), tableOutput("defaults"))), 
+        hr(),
         fluidRow(
-          column(12, "Tunability", 
+          column(12, h4("Tunability"), 
             column(12, uiOutput("scaled")),
             column(12, fluidRow(
             column(1, "Overall mean tunability", tableOutput("overallTunability")), 
             column(11, "Hyperparameters", tableOutput("tunability"))
           )))),
+        hr(),
+        fluidRow(column(12, h4("Tuning Space"),
+          column(12, uiOutput("quantile")),
+          column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
+          column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
+        )),
+        hr(),
         fluidRow(column(6, uiOutput("visual")),
           column(6, uiOutput("visual2"))),
-        fluidRow(plotlyOutput("plot3")),
+        plotlyOutput("plot3", inline = F),
         
         conditionalPanel(
-          condition = "input.visual== 'Histogram'",
+          condition = "input.visual == 'Histogram'",
           sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
-        ),
-        
-      fluidRow(column(12, "Tuning Space",
-        column(12, uiOutput("quantile")),
-        column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
-        column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
-      ))
+        )
+  
       ),
       tabPanel("Interaction effects",
         fluidRow(column(12, uiOutput("combi")),

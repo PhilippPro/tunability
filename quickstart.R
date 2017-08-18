@@ -61,7 +61,6 @@ save(bmr_surrogate, file = "results.RData")
 
 # Best model in general: ranger, cubist
 
-
 ################################# Calculate tunability measures
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = surrogates_all = list()
@@ -160,7 +159,7 @@ resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
 save(results, resultsPackageDefaults, file = "results.RData")
-#save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
 default = resultsPackageDefaults$mlr.classif.ranger$default

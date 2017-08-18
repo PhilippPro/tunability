@@ -30,10 +30,15 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
     task.ids = unique(task.data$task_id)
   }
   
+
+  
   mlr.tasks = list()
   for(i in seq_along(task.ids)) {
     task.idi = task.ids[i]
-    mlr.tasks[[i]] = makeRegrTask(id = as.character(task.idi), subset(task.data, task_id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
+    data = subset(task.data, task_id == task.ids[i], select =  c("measure.value", names(param.set$pars)))
+    # Rename column names because of weird "sample" behaviour of cubist
+    colnames(data) = gsub("sample", "ampel", colnames(data))
+    mlr.tasks[[i]] = makeRegrTask(id = as.character(task.idi), data, target = "measure.value")
   }
   mlr.lrns = surrogate.mlr.lrns
   measures = list(mse, rsq, kendalltau, spearmanrho)
