@@ -48,11 +48,11 @@ names(bmr) = learner.names
 parallelStop()
 
 for(i in seq_along(bmr)) {
-rmat = convertBMRToRankMatrix(bmr[[i]])
-print(rmat)
-print(plotBMRSummary(bmr[[i]]))
-print(plotBMRBoxplots(bmr[[i]], style = "violin"))
-print(plotBMRRanksAsBarChart(bmr[[i]], pos = "stack"))
+  rmat = convertBMRToRankMatrix(bmr[[i]])
+  print(rmat)
+  print(plotBMRSummary(bmr[[i]]))
+  print(plotBMRBoxplots(bmr[[i]], style = "violin"))
+  print(plotBMRRanksAsBarChart(bmr[[i]], pos = "stack"))
 }
 bmr_surrogate = bmr
 
