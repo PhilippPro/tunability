@@ -32,7 +32,7 @@ server = function(input, output) {
   bmrAggr = reactive({
     perfs = data.table(getBMRAggrPerformances(bmrInput(), as.df = T, drop = T))[, -"task.id"]
     perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
-      spearmanrho = spearmanrho.test.mean),function(x) mean(x, na.rm = F)), by = "learner.id"])
+      spearmanrho = spearmanrho.test.mean),function(x) mean(x[x>=0], na.rm = T)), by = "learner.id"])
     perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
     perfs
   })
@@ -230,7 +230,7 @@ ui = fluidPage(
     tabsetPanel(
       tabPanel("Surrogate models comparison", 
         fluidRow(
-          column(12, "Average mean of different surrogate models", tableOutput("bmr_result"))),
+          column(12, "Average mean of different surrogate models (for not-NA results)", tableOutput("bmr_result"))),
         fluidRow(
           column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
         plotOutput("plot1"),

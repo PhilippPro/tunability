@@ -30,8 +30,6 @@ compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.resu
     task.ids = unique(task.data$task_id)
   }
   
-
-  
   mlr.tasks = list()
   for(i in seq_along(task.ids)) {
     task.idi = task.ids[i]
