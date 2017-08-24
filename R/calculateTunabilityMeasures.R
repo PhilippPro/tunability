@@ -1,9 +1,9 @@
 #' Calculate default hyperparameter setting
 #' @param surrogates Surrogate models
-calculateDefault = function(surrogates) {
+calculateDefault = function(surrogates, n.points = 100000) {
   surr = surrogates$surrogates
   param.set = surrogates$param.set
-  rnd.points = generateRandomDesign(10000, param.set, trafo = TRUE)
+  rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
   rnd.points = deleteNA(rnd.points)
   
   preds = matrix(NA, nrow(rnd.points), length(surr))

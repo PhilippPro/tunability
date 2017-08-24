@@ -65,7 +65,7 @@ save(bmr_surrogate, file = "results.RData")
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = surrogates_all = list()
 
-for(i in seq_along(learner.names)) {
+for(i in 1:5) {
   print(i)
     set.seed(199 + i)
   # Surrogate model calculation
@@ -99,9 +99,9 @@ save(surrogates_all, file = "surrogates.RData")
 save(surrogates, file = "surrogates6.RData")
 
 # Calculations
-default = results$mlr.classif.ranger$default
-optimum = results$mlr.classif.ranger$optimum
-optimumHyperpar = results$mlr.classif.ranger$optimumHyperpar
+default = results$mlr.classif.rpart$default
+optimum = results$mlr.classif.rpart$optimum
+optimumHyperpar = results$mlr.classif.rpart$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
@@ -112,18 +112,18 @@ data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
 # Interaction
 # Bare values
-tab = colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.ranger$default$result)
+tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result)
 diag(tab) = colMeans(tunability)
 colnames(tab) = rownames(tab) = names(tunability)
 tab
 # Interaction
-colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.ranger$default$result) - 
+colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result) - 
   outer(colMeans(tunability), colMeans(tunability), '+')
 # Performance gain
-colMeans(results$mlr.classif.ranger$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.ranger$default$result) - 
+colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.rpart$default$result) - 
   outer(colMeans(tunability), colMeans(tunability), pmax)
 
 # Package defaults
@@ -162,9 +162,9 @@ save(results, resultsPackageDefaults, file = "results.RData")
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
-default = resultsPackageDefaults$mlr.classif.ranger$default
-optimum = results$mlr.classif.ranger$optimum
-optimumHyperpar = resultsPackageDefaults$mlr.classif.ranger$optimumHyperpar
+default = resultsPackageDefaults$mlr.classif.rpart$default
+optimum = results$mlr.classif.rpart$optimum
+optimumHyperpar = resultsPackageDefaults$mlr.classif.rpart$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 
