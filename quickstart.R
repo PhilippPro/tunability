@@ -84,8 +84,6 @@ for(i in 1:5) {
   # Tuning space
   tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
     
-  if(i != 6)
-    surrogates_all[[i]] = surrogates
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
   gc()
@@ -94,14 +92,11 @@ names(results) = learner.names
 names(surrogates_all) = learner.names
 
 save(results, file = "results.RData")
-#save(bmr_surrogate, results, file = "results.RData")
-save(surrogates_all, file = "surrogates.RData")
-save(surrogates, file = "surrogates6.RData")
 
 # Calculations
-default = results$mlr.classif.rpart$default
-optimum = results$mlr.classif.rpart$optimum
-optimumHyperpar = results$mlr.classif.rpart$optimumHyperpar
+default = results$mlr.classif.glmnet$default
+optimum = results$mlr.classif.glmnet$optimum
+optimumHyperpar = results$mlr.classif.glmnet$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
@@ -158,7 +153,6 @@ names(resultsPackageDefaults) = learner.names
 resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
-save(results, resultsPackageDefaults, file = "results.RData")
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
