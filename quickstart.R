@@ -65,13 +65,12 @@ save(bmr_surrogate, file = "results.RData")
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = surrogates_all = list()
 
-for(i in 1:5) {
+for(i in 1:6) {
   print(i)
     set.seed(199 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
-  #surrogates = getSurrogateModels(measure.name, learner.name, task.ids)
 
   # Default calculation
   default = calculateDefault(surrogates)
@@ -135,13 +134,14 @@ package.defaults = list(
 # Parameters dependent on data characteristics: svm: gamma, ranger: mtry. 
 # Not Specified: glmnet: alpha, xgboost: nrounds
 resultsPackageDefaults = list()
-# that does not work cause of memory limit
-surrogates_all[[6]] = surrogates
 
 for(i in seq_along(learner.names)) {
   print(i)
-  set.seed(123 + i)
-  surrogates = surrogates_all[[i]]
+  set.seed(199 + i)
+  # Surrogate model calculation
+  surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
+  
   def = package.defaults[[i]]
   default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)
   optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures)
