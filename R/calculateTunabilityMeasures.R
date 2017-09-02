@@ -11,12 +11,28 @@ calculateDefault = function(surrogates, n.points = 100000) {
     print(paste("surrogate predict: task", i, "of", length(surr)))
     preds[, i] = predict(surr[[i]], newdata = rnd.points)$data$response
   }
-  # Best default
-  average_preds = apply(preds[, 1:2], 1, mean)
+  # Best default in general
+  average_preds = apply(preds, 1, mean)
   best = which(average_preds == max(average_preds))[1]
   default = rnd.points[best,, drop = FALSE]
   rownames(default) = NULL
+  
   list(default = rnd.points[best,, drop = FALSE], result = preds[best, ])
+  
+  # Default calculation with LOOCV
+  #best_i = numeric(ncol(preds))
+  #preds_i_best = numeric(ncol(preds))
+  #default.loocv = list()
+  # Best default with LOOCV
+  #for(i in 1:ncol(preds)) {
+  #  preds_i = rowMeans(preds[, -i])
+  #  best_i[i] = which(preds_i == max(preds_i))[1]
+  #  preds_i_best[i] = preds[best_i[i],i]
+  #  default.loocv[[i]] = rnd.points[best_i[i],, drop = FALSE]
+  #}
+  
+  #list(default = rnd.points[best,, drop = FALSE], result = preds[best, ], 
+  #  default.loocv = rnd.points[best_i,], result.loocv = preds_i_best)
 }
 
 #' Calculate performance of hyperparameter setting
@@ -41,14 +57,14 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
   if (hyperpar == "all") {
     rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
     rnd.points = deleteNA(rnd.points)
-    rnd.points = rbind(default$default, rnd.points)
+    rnd.points = rbind(unique(default$default.loocv), rnd.points)
     
     preds = matrix(NA, nrow(rnd.points), length(surr))
     for(i in seq_along(surr)) {
       print(paste("surrogate predict: task", i, "of", length(surr)))
       preds[, i] = predict(surr[[i]], newdata = rnd.points)$data$response
     }
-    # Best default
+    # Best Value
     rnd.points[apply(preds, 2, which.max),]
     return(list(optimum = diag(preds[apply(preds, 2, which.max), ]), par.sets = rnd.points[apply(preds, 2, which.max),, drop = FALSE]))
   }
@@ -68,7 +84,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
       for(j in seq_along(surr)) {
         preds[, j] = predict(surr[[j]], newdata = rnd.points1)$data$response
       }
-      # Best default
+      # Best Value
       # rnd.points1[apply(preds, 2, which.max),]
       result[, i] = diag(preds[apply(preds, 2, which.max), ])
     }
@@ -90,7 +106,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
         for(k in seq_along(surr)) {
           preds[, k] = predict(surr[[k]], newdata = rnd.points1)$data$response
         }
-        # Best default
+        # Best Value
         # rnd.points1[apply(preds, 2, which.max),]
         result[, i, j] = diag(preds[apply(preds, 2, which.max), ])
       }

@@ -65,13 +65,21 @@ save(bmr_surrogate, file = "results.RData")
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = surrogates_all = list()
 
+task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
+
 for(i in 1:6) {
   print(i)
     set.seed(199 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
-
+    task.ids = task.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn)
+  save(surrogates, file = paste0("surrogates_",i, ".RData"))
+}
+  
+  
+for(i in 1:6) {
+  print(i)
+  set.seed(199 + i)
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall

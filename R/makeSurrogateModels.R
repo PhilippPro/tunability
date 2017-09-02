@@ -9,18 +9,14 @@
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
 makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
-  tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100) {
+  tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn) {
 
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   #train mlr model on full table for measure
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, task.ids)
   task.data = data.frame(task.data)
   task.data = deleteNA(task.data)
   
-  # Only datasets with more than 100 results
-  bigger = names(table(task.data$task_id))[which(table(task.data$task_id) > min.experiments)]
-  task.data = task.data[task.data$task_id %in% bigger,]
-
   # get specific task ids
   if(!is.null(task.ids)) {
     uni = unique(task.data$task_id)
@@ -50,7 +46,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @return [\code{data.frame}] Complete table used for creating the surrogate model 
-makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set) {
+makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, task.ids) {
   
   tbl.hypPars.learner = tbl.hypPars[tbl.hypPars$fullName == learner.name, ]
   tbl.hypPars.learner = spread(tbl.hypPars.learner, name, value)
@@ -80,6 +76,9 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
   colnames(bot.table)[2] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
+  # select only runs on the specific task.ids
+  bot.table =  subset(bot.table, task_id %in% task.ids)
+  
   return(bot.table)
 }
 
@@ -90,4 +89,17 @@ conversion_function = function(x, param_type) {
   if(param_type %in% c("character", "logical", "factor", "discrete"))
     x = as.factor(x)
   return(x)
+}
+
+#' Get relevant datasets
+#'
+#' @param tbl.results 
+#' @param tbl.hypPars 
+#' @param min.experiments 
+calculateTaskIds = function(tbl.results, tbl.hypPars, min.experiments = 300) {
+  whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., task_id, fullName)
+  cross.table = table(whole.table$task_id, whole.table$fullName)
+  bigger = rowSums(cross.table > 300)
+  task.ids = names(bigger)[bigger == 6] 
+  return(task.ids)
 }
