@@ -63,7 +63,7 @@ save(bmr_surrogate, file = "results.RData")
 
 ################################# Calculate tunability measures
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
-results = surrogates_all = list()
+results = list()
 
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
@@ -75,11 +75,11 @@ for(i in 1:6) {
     task.ids = task.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn)
   save(surrogates, file = paste0("surrogates_",i, ".RData"))
 }
-  
-  
+
 for(i in 1:6) {
   print(i)
   set.seed(199 + i)
+  load(paste0("surrogates_",i, ".RData"))
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
@@ -94,11 +94,9 @@ for(i in 1:6) {
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
   gc()
+  save(results, file = "results.RData")
 }
 names(results) = learner.names
-names(surrogates_all) = learner.names
-
-save(results, file = "results.RData")
 
 # Calculations
 default = results$mlr.classif.glmnet$default
@@ -110,7 +108,6 @@ tunability = calculateTunability(default, optimumHyperpar)
 data.frame(t(colMeans(tunability)))
 # scaled
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
-
 
 # Interaction
 # Bare values
@@ -146,9 +143,7 @@ resultsPackageDefaults = list()
 for(i in seq_along(learner.names)) {
   print(i)
   set.seed(199 + i)
-  # Surrogate model calculation
-  surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrn, min.experiments = 100)
+  load(paste0("surrogates_",i, ".RData"))
   
   def = package.defaults[[i]]
   default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)
