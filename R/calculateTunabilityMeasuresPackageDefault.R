@@ -1,12 +1,12 @@
 #' Calculate default hyperparameter setting
 #' @param surrogates Surrogate models
 #' @param def Package defaults
-calculatePackageDefaultPerformance = function(surrogates, def, tbl.metaFeatures) {
+calculatePackageDefaultPerformance = function(surrogates, def, tbl.metaFeatures, tbl.results) {
   surr = surrogates$surrogates
   preds = numeric(length(surr))
   for(i in seq_along(surr)) {
     print(paste("surrogate predict: task", i, "of", length(surr)))
-    default = convertPackageDefault(def, surr[[i]], tbl.metaFeatures)
+    default = convertPackageDefault(def, surr[[i]], tbl.metaFeatures, tbl.results)
     preds[i] = predict(surr[[i]], newdata = default)$data$response
   }
   # Best default
@@ -14,7 +14,7 @@ calculatePackageDefaultPerformance = function(surrogates, def, tbl.metaFeatures)
   list(default = default, result = preds)
 }
 
-convertPackageDefault = function(def, surr, tbl.metaFeatures) {
+convertPackageDefault = function(def, surr, tbl.metaFeatures, tbl.results) {
   task_idi = surr$task.desc$id
   
   matching_task_data = unique(tbl.results[, c("task_id", "data_id")])
@@ -35,7 +35,7 @@ convertPackageDefault = function(def, surr, tbl.metaFeatures) {
 #' Calculate optimal hyperparameter values for an algorithm
 #' @param surrogate Surrogate models
 #' @param hyperpar Number of hyperparameters that should be evaluated at once; Possible options: one, two and all
-calculateDatasetOptimumPackageDefault = function(surrogates, default, hyperpar = "one", n.points = 10000, tbl.metaFeatures) {
+calculateDatasetOptimumPackageDefault = function(surrogates, default, hyperpar = "one", n.points = 10000, tbl.metaFeatures, tbl.results) {
   surr = surrogates$surrogates
   param.set = surrogates$param.set
   
@@ -53,7 +53,7 @@ calculateDatasetOptimumPackageDefault = function(surrogates, default, hyperpar =
       
       for(j in seq_along(surr)) {
         if (!(names(param.set$pars)[i] %in% c("mtry", "gamma"))) {
-          rnd.points1 = convertPackageDefault(rnd.points1, surr[[j]], tbl.metaFeatures)
+          rnd.points1 = convertPackageDefault(rnd.points1, surr[[j]], tbl.metaFeatures, tbl.results)
         }
         preds[, j] = predict(surr[[j]], newdata = rnd.points1)$data$response
       }
@@ -78,7 +78,7 @@ calculateDatasetOptimumPackageDefault = function(surrogates, default, hyperpar =
         preds = matrix(NA, nrow(rnd.points1), length(surr))
         for(k in seq_along(surr)) {
           if (!any(names(param.set$pars)[c(i,j)] %in% c("mtry", "gamma"))) {
-          rnd.points1 = convertPackageDefault(rnd.points1, surr[[k]], tbl.metaFeatures)
+          rnd.points1 = convertPackageDefault(rnd.points1, surr[[k]], tbl.metaFeatures, tbl.results)
           }
           preds[, k] = predict(surr[[k]], newdata = rnd.points1)$data$response
         }

@@ -111,18 +111,18 @@ data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
 # Interaction
 # Bare values
-tab = colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result)
+tab = colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.glmnet$default$result)
 diag(tab) = colMeans(tunability)
 colnames(tab) = rownames(tab) = names(tunability)
 tab
 # Interaction
-colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result) - 
+colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.glmnet$default$result) - 
   outer(colMeans(tunability), colMeans(tunability), '+')
 # Performance gain
-colMeans(results$mlr.classif.rpart$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
-  mean(results$mlr.classif.rpart$default$result) - 
+colMeans(results$mlr.classif.glmnet$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - 
+  mean(results$mlr.classif.glmnet$default$result) - 
   outer(colMeans(tunability), colMeans(tunability), pmax)
 
 # Package defaults
@@ -146,10 +146,11 @@ for(i in seq_along(learner.names)) {
   load(paste0("surrogates_",i, ".RData"))
   
   def = package.defaults[[i]]
-  default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures)
-  optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures)
-  optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures)
+  default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures, tbl.results)
+  optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures, tbl.results)
+  optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures, tbl.results)
     resultsPackageDefaults[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
+  save(results, resultsPackageDefaults, file = "results.RData")
 }
 names(resultsPackageDefaults) = learner.names
 
