@@ -33,6 +33,7 @@ surrogate.mlr.lrns = list(
 )
 
 bmr = list()
+task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 library("parallelMap")
 parallelStartSocket(8)
@@ -40,7 +41,7 @@ for (i in seq_along(learner.names)) {
   print(i)
   set.seed(123 + i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
-    task.ids = NULL, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100)
+    task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   gc()
 }
 

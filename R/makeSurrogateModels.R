@@ -60,6 +60,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
   bot.table = inner_join(tbl.results, tbl.hypPars.learner, by = "setup") %>%
     select(., -run_id, -setup, -fullName)
 
+  # Scale mtry in random forest
   if(learner.name == "mlr.classif.ranger"){
     n_feats = filter(tbl.metaFeatures, quality == "NumberOfFeatures") %>%
       select(., -quality)
@@ -70,9 +71,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
     bot.table = bot.table %>% select(., -value)
   }
   
-  bot.table = bot.table %>%
-    select(., -data_id)
-  
+  bot.table = bot.table %>% select(., -data_id)
   colnames(bot.table)[2] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
@@ -96,10 +95,10 @@ conversion_function = function(x, param_type) {
 #' @param tbl.results 
 #' @param tbl.hypPars 
 #' @param min.experiments 
-calculateTaskIds = function(tbl.results, tbl.hypPars, min.experiments = 300) {
+calculateTaskIds = function(tbl.results, tbl.hypPars, min.experiments = 200) {
   whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., task_id, fullName)
   cross.table = table(whole.table$task_id, whole.table$fullName)
-  bigger = rowSums(cross.table > 300)
+  bigger = rowSums(cross.table > min.experiments)
   task.ids = names(bigger)[bigger == 6] 
   return(task.ids)
 }

@@ -10,17 +10,13 @@
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
 compareSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
-  tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrns, min.experiments = 100) {
+  tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrns) {
   
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   #train mlr model on full table for measure
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, task.ids)
   task.data = data.frame(task.data)
   task.data = deleteNA(task.data)
-  
-  # Only datasets with more than 100 results
-  bigger = names(table(task.data$task_id))[which(table(task.data$task_id) > min.experiments)]
-  task.data = task.data[task.data$task_id %in% bigger,]
   
   # get specific task ids
   if(!is.null(task.ids)) {
