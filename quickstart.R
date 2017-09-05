@@ -161,7 +161,7 @@ resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
-default = resultsPackageDefaults$mlr.classif.rpart$default
+default = resultsPackageDefaults$mlr.classif.xgboost$default
 optimum = results$mlr.classif.rpart$optimum
 optimumHyperpar = resultsPackageDefaults$mlr.classif.rpart$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
@@ -174,6 +174,20 @@ data.frame(t(colMeans(tunability)))
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
 
+# KI for tunability
+y = overallTunability
+hist(y)
+qqnorm(y)
+qqline(y)
+# Tunability of the "algorithm" 
+plot(results$mlr.classif.glmnet$default$result, type = "l")
+avg_results = numeric(6)
+for(i in seq_along(learner.names)) {
+  lines(results[[i]]$default$result, col = i)
+  avg_results[i] = mean(results[[i]]$default$result)
+}
+
+# Make a (rank) matrix!
 
 
 # Annex
