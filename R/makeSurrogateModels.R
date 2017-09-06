@@ -20,9 +20,9 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
   # get specific task ids
   if(!is.null(task.ids)) {
     uni = unique(task.data$task_id)
-    task.ids = uni[uni %in% task.ids]
+    task.ids = sort(uni[uni %in% task.ids])
   } else {
-    task.ids = unique(task.data$task_id)
+    task.ids = sort(unique(task.data$task_id))
   }
   
   mlr.mod.measure = list()

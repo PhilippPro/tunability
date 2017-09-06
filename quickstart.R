@@ -161,7 +161,7 @@ resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
-default = resultsPackageDefaults$mlr.classif.xgboost$default
+default = resultsPackageDefaults$mlr.classif.rpart$default
 optimum = results$mlr.classif.rpart$optimum
 optimumHyperpar = resultsPackageDefaults$mlr.classif.rpart$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
@@ -173,21 +173,33 @@ data.frame(t(colMeans(tunability)))
 # scaled
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
 
-
 # KI for tunability
 y = overallTunability
 hist(y)
 qqnorm(y)
 qqline(y)
-# Tunability of the "algorithm" 
-plot(results$mlr.classif.glmnet$default$result, type = "l")
+
+t_value = qt(0.975, length(y) - 1)
+mean(y) + c(-t_value, t_value) * sd(y) / sqrt(length(y))
+
+# Tunability of the "algorithm"; overfitting problem!
+the_order = order(results[[5]]$default$result)
+plot(results$mlr.classif.glmnet$default$result[the_order], type = "l", ylab = "AUC")
 avg_results = numeric(6)
+best_results = best_results_default = numeric(length(results$mlr.classif.glmnet$default$result))
+
 for(i in seq_along(learner.names)) {
-  lines(results[[i]]$default$result, col = i)
+  lines(results[[i]]$default$result[the_order], col = i)
   avg_results[i] = mean(results[[i]]$default$result)
+  for(j in 1:length(results[[i]]$default$result)) {
+    best_results_default[j] = ifelse(results[[i]]$default$result[j] > best_results[j], results[[i]]$default$result[j], best_results[j])
+    best_results[j] = ifelse(results[[i]]$optimum$optimum[j] > best_results[j], results[[i]]$optimum$optimum[j], best_results[j])
+  }
 }
+legend("topleft", legend = substr(learner.names, 13, 100), col = 1:6, lty = 1)
 
-# Make a (rank) matrix!
-
-
+round(best_results - (results[[5]]$default$result), 3)
+mean(best_results_default - (results[[5]]$default$result))
+mean(best_results - (results[[5]]$default$result))
+# maybe overfitting!
 # Annex
