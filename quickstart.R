@@ -44,7 +44,6 @@ for (i in seq_along(learner.names)) {
     task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   gc()
 }
-
 names(bmr) = learner.names
 parallelStop()
 
@@ -201,5 +200,45 @@ legend("topleft", legend = substr(learner.names, 13, 100), col = 1:6, lty = 1)
 round(best_results - (results[[5]]$default$result), 3)
 mean(best_results_default - (results[[5]]$default$result))
 mean(best_results - (results[[5]]$default$result))
-# maybe overfitting!
+
+# maybe overfitting! 
+
+# Make Crossvalidation to test if there is overfitting
+results_cv = list()
+for(i in 1:6) {
+  print(i)
+  set.seed(3000 + i)
+  load(paste0("surrogates_",i, ".RData"))
+  
+  # CV
+  n_surr = length(surrogates)
+  shuffle = sample(n_surr)
+  folds = cut(shuffle, breaks = 5, labels = FALSE)
+  
+  default = list()
+  
+  for(j in 1:5) {
+    testInd = which(folds == j, arr.ind = TRUE)
+    trainInd = which(folds != j, arr.ind = TRUE)
+    
+    # Default calculation
+    default1 = calculateDefault(surrogates[trainInd])
+    # Calculate performance of these defaults on test datasets
+    default[[j]] = calculatePerformance(surrogates[testInd], default1$default)
+    # Tunability hyperparameter specific
+    optimumHyperpar[[j]] = calculateDatasetOptimum(surrogates[testInd], default[[j]], hyperpar = "one", n.points = 100000)
+    # Tunability for two hyperparameters
+    optimumTwoHyperpar[[j]] = calculateDatasetOptimum(surrogates[testInd], default[[j]], hyperpar = "two", n.points = 10000)
+    
+    results_cv[[i]] = list(default = default, optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
+    gc()
+  }
+  save(results_cv, file = "results.RData")
+}
+names(results_cv) = learner.names
+
+
+
+
+
 # Annex
