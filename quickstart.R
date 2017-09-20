@@ -36,10 +36,10 @@ bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 library("parallelMap")
-parallelStartSocket(8)
+parallelStartSocket(6)
 for (i in seq_along(learner.names)) {
   print(i)
-  set.seed(123 + i)
+  set.seed(521 + i)
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   gc()
@@ -157,7 +157,7 @@ names(resultsPackageDefaults) = learner.names
 resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
-save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+save(results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
 default = resultsPackageDefaults$mlr.classif.rpart$default
@@ -201,6 +201,8 @@ round(best_results - (results[[5]]$default$result), 3)
 mean(best_results_default - (results[[5]]$default$result))
 mean(best_results - (results[[5]]$default$result))
 
+mean((results[[5]]$default$result) - (results[[6]]$default$result))
+
 # maybe overfitting! 
 
 # Make Crossvalidation to test if there is overfitting
@@ -211,32 +213,35 @@ for(i in 1:6) {
   load(paste0("surrogates_",i, ".RData"))
   
   # CV
-  n_surr = length(surrogates)
+  n_surr = length(surrogates$surrogates)
   shuffle = sample(n_surr)
   folds = cut(shuffle, breaks = 5, labels = FALSE)
   
   default = list()
+  optimumHyperpar = list()
+  optimumTwoHyperpar = list()
   
   for(j in 1:5) {
+    print(paste(j,i))
     testInd = which(folds == j, arr.ind = TRUE)
     trainInd = which(folds != j, arr.ind = TRUE)
     
     # Default calculation
-    default1 = calculateDefault(surrogates[trainInd])
+    default1 = calculateDefault(surrogates = list(surrogates = surrogates$surrogates[trainInd], param.set = surrogates$param.set))
     # Calculate performance of these defaults on test datasets
-    default[[j]] = calculatePerformance(surrogates[testInd], default1$default)
+    default[[j]] = calculatePerformance(list(surrogates = surrogates$surrogates[testInd], param.set = surrogates$param.set), default1$default)
     # Tunability hyperparameter specific
-    optimumHyperpar[[j]] = calculateDatasetOptimum(surrogates[testInd], default[[j]], hyperpar = "one", n.points = 100000)
+    optimumHyperpar[[j]] = calculateDatasetOptimum(surrogates = list(surrogates = surrogates$surrogates[testInd], param.set = surrogates$param.set), default[[j]], hyperpar = "one", n.points = 100000)
     # Tunability for two hyperparameters
-    optimumTwoHyperpar[[j]] = calculateDatasetOptimum(surrogates[testInd], default[[j]], hyperpar = "two", n.points = 10000)
+    optimumTwoHyperpar[[j]] = calculateDatasetOptimum(list(surrogates = surrogates$surrogates[testInd], param.set = surrogates$param.set), default[[j]], hyperpar = "two", n.points = 10000)
     
     results_cv[[i]] = list(default = default, optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
     gc()
   }
-  save(results_cv, file = "results.RData")
+  save(results, resultsPackageDefaults, results_cv, file = "results.RData")
 }
 names(results_cv) = learner.names
-
+save(results, resultsPackageDefaults, results_cv, file = "results.RData")
 
 
 

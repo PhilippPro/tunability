@@ -37,12 +37,12 @@ calculateDefault = function(surrogates, n.points = 100000) {
 
 #' Calculate performance of hyperparameter setting
 #' @param par.set Parameter setting
-calculatePerformance = function(surrogates, par.set) {
+calculatePerformance = function(surrogates, default) {
   surr = surrogates$surrogates
   preds = numeric(length(surr))
   for(i in seq_along(surr)) {
     print(paste("surrogate predict: task", i, "of", length(surr)))
-    preds[i] = predict(surr[[i]], newdata = par.set)$data$response
+    preds[i] = predict(surr[[i]], newdata = default)$data$response
   }
   # Best default
   list(default = default, result = preds)
@@ -57,8 +57,7 @@ calculateDatasetOptimum = function(surrogates, default, hyperpar = "all", n.poin
   if (hyperpar == "all") {
     rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
     rnd.points = deleteNA(rnd.points)
-    rnd.points = rbind(unique(default$default.loocv), rnd.points)
-    
+
     preds = matrix(NA, nrow(rnd.points), length(surr))
     for(i in seq_along(surr)) {
       print(paste("surrogate predict: task", i, "of", length(surr)))
