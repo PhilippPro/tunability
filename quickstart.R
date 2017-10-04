@@ -37,6 +37,7 @@ bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 configureMlr(on.learner.error = "warn", on.error.dump = TRUE)
 
+configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = FALSE)
 library("parallelMap")
 parallelStartSocket(4)
 for (i in seq_along(learner.names)) {
@@ -212,7 +213,6 @@ mean(best_results_default - (results[[5]]$default$result))
 mean(best_results - (results[[5]]$default$result))
 
 mean((results[[5]]$default$result) - (results[[6]]$default$result))
-
 # maybe overfitting! 
 
 # Make Crossvalidation to test if there is overfitting
@@ -253,7 +253,17 @@ for(i in 1:6) {
 names(results_cv) = learner.names
 save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = "results.RData")
 
-
+# overall tunability, cross-validated
+for(i in seq_along(learner.names)){
+  print(learner.names[i])
+  print(mean(calculateTunability(results[[i]]$default, results[[i]]$optimum)))
+  print(mean(results[[i]]$optimum$optimum - c(sapply(results_cv[[i]]$default, "[[", 2))))
+}
+for(i in seq_along(learner.names)){
+  print(learner.names[i])
+  print(rbind(colMeans(calculateTunability(results[[i]]$default, results[[i]]$optimumHyperpar)),
+  colMeans(do.call(rbind, unlist(results_cv[[i]]$optimumHyperpar, recursive=FALSE)) - c(sapply(results_cv[[i]]$default, "[[", 2)))))
+}
 
 
 # Annex
