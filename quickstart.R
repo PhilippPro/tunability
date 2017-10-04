@@ -18,6 +18,7 @@ learner.names = paste0("mlr.", names(lrn.par.set))
 learner.names = stri_sub(learner.names, 1, -5)
 
 ################################ Compare different surrogate models
+# only models which do not have to be tuned!
 surrogate.mlr.lrns = list(
   makeLearner("regr.lm"),
   makeLearner("regr.rpart"),
@@ -34,20 +35,29 @@ surrogate.mlr.lrns = list(
 
 bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
+configureMlr(on.learner.error = "warn", on.error.dump = TRUE)
 
 library("parallelMap")
-parallelStartSocket(6)
+parallelStartSocket(4)
 for (i in seq_along(learner.names)) {
   print(i)
   set.seed(521 + i)
+  if(i == 4) { # task.id 146085, 14966 does not work for svm
+    bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+      task.ids = task.ids[-c(38,60)], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+  } else {
   bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
     task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+  }
   gc()
+  save(bmr, file = "results.RData")
 }
-names(bmr) = learner.names
 parallelStop()
+names(bmr) = learner.names
+
 
 for(i in seq_along(bmr)) {
+  print(i)
   rmat = convertBMRToRankMatrix(bmr[[i]])
   print(rmat)
   print(plotBMRSummary(bmr[[i]]))
@@ -67,7 +77,7 @@ results = list()
 
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
-for(i in 1:6) {
+for(i in seq_along(learner.names)) {
   print(i)
     set.seed(199 + i)
   # Surrogate model calculation
@@ -76,7 +86,7 @@ for(i in 1:6) {
   save(surrogates, file = paste0("surrogates_",i, ".RData"))
 }
 
-for(i in 1:6) {
+for(i in seq_along(learner.names)) {
   print(i)
   set.seed(199 + i)
   load(paste0("surrogates_",i, ".RData"))
@@ -94,7 +104,7 @@ for(i in 1:6) {
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
   gc()
-  save(results, file = "results.RData")
+  save(bmr_surrogate, results, file = "results.RData")
 }
 names(results) = learner.names
 
@@ -150,14 +160,14 @@ for(i in seq_along(learner.names)) {
   optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures, tbl.results)
   optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures, tbl.results)
     resultsPackageDefaults[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
-  save(results, resultsPackageDefaults, file = "results.RData")
+  save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 }
 names(resultsPackageDefaults) = learner.names
 
 resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
-save(results, resultsPackageDefaults, file = "results.RData")
+save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
 
 # Calculations
 default = resultsPackageDefaults$mlr.classif.rpart$default
@@ -241,7 +251,7 @@ for(i in 1:6) {
   save(results, resultsPackageDefaults, results_cv, file = "results.RData")
 }
 names(results_cv) = learner.names
-save(results, resultsPackageDefaults, results_cv, file = "results.RData")
+save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = "results.RData")
 
 
 
