@@ -31,8 +31,14 @@ server = function(input, output) {
   
   bmrAggr = reactive({
     perfs = data.table(getBMRAggrPerformances(bmrInput(), as.df = T, drop = T))[, -"task.id"]
+    # delete datasets with missing results
+    error.results = which(is.na(perfs$kendalltau.test.mean) | perfs$rsq.test.mean < 0)
+    error.results = unlist(lapply(unique(floor(error.results/5 - 0.0001)), 
+      function(x) x + seq(0.2, 1, 0.2)))*5
+    if(length(error.results)!=0)
+     perfs = perfs[-error.results,]
     perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
-      spearmanrho = spearmanrho.test.mean),function(x) mean(x[x>=0], na.rm = T)), by = "learner.id"])
+      spearmanrho = spearmanrho.test.mean),function(x) mean(x)), by = "learner.id"])
     perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
     perfs
   })
