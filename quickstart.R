@@ -35,23 +35,35 @@ surrogate.mlr.lrns = list(
 
 bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
-configureMlr(on.learner.error = "warn", on.error.dump = TRUE)
 
-configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = FALSE)
+whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., task_id, fullName)
+cross.table = table(whole.table$task_id, whole.table$fullName)
+bigger = rowSums(cross.table > min.experiments)
+task.ids = names(bigger)[bigger == 6] 
+
+rownames(cross.table)[cross.table[,2] < 200]
+c("272", "282", "3896", "3917", "7295", "9889", "9910", "9911", "9957", "9976", "34539", "145834", "145836", "145847", "145848",
+ "145853", "145854", "145857", "145862", "145872", "145878", "145972", "145976", "145979", "146012", "146064", "146066", "146082", "146085")
+
+measures = c("auc", "accuracy", "brier")
+
+for(k in seq_along(measures)) {
+
+configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
 library("parallelMap")
 parallelStartSocket(4)
 for (i in seq_along(learner.names)) {
   print(i)
   set.seed(521 + i)
   if(i == 4) { # task.id 146085, 14966 does not work for svm
-    bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
       task.ids = task.ids[-c(38,60)], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   } else {
-  bmr[[i]] = compareSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+  bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
     task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   }
   gc()
-  save(bmr, file = "results.RData")
+  save(bmr, file = paste0("results_", measures[k], ".RData"))
 }
 parallelStop()
 names(bmr) = learner.names
@@ -68,7 +80,7 @@ for(i in seq_along(bmr)) {
 bmr_surrogate = bmr
 
 # Save results
-save(bmr_surrogate, file = "results.RData")
+save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 
 # Best model in general: ranger, cubist
 
@@ -82,15 +94,15 @@ for(i in seq_along(learner.names)) {
   print(i)
     set.seed(199 + i)
   # Surrogate model calculation
-  surrogates = makeSurrogateModels(measure.name = "area.under.roc.curve", learner.name = learner.names[i], 
+  surrogates = makeSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
     task.ids = task.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn)
-  save(surrogates, file = paste0("surrogates_",i, ".RData"))
+  save(surrogates, file = paste0("surrogates_", measures[k], "_", i, ".RData"))
 }
 
 for(i in seq_along(learner.names)) {
   print(i)
   set.seed(199 + i)
-  load(paste0("surrogates_",i, ".RData"))
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
   # Default calculation
   default = calculateDefault(surrogates)
   # Tunability overall
@@ -105,7 +117,7 @@ for(i in seq_along(learner.names)) {
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)
   gc()
-  save(bmr_surrogate, results, file = "results.RData")
+  save(bmr_surrogate, results, file = paste0("results_", measures[k], ".RData"))
 }
 names(results) = learner.names
 
@@ -154,21 +166,21 @@ resultsPackageDefaults = list()
 for(i in seq_along(learner.names)) {
   print(i)
   set.seed(199 + i)
-  load(paste0("surrogates_",i, ".RData"))
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
   
   def = package.defaults[[i]]
   default = calculatePackageDefaultPerformance(surrogates, def, tbl.metaFeatures, tbl.results)
   optimumHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "one", n.points = 100000, tbl.metaFeatures, tbl.results)
   optimumTwoHyperpar = calculateDatasetOptimumPackageDefault(surrogates, default, hyperpar = "two", n.points = 10000, tbl.metaFeatures, tbl.results)
     resultsPackageDefaults[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
-  save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+  save(bmr_surrogate, results, resultsPackageDefaults, file = paste0("results_", measures[k], ".RData"))
 }
 names(resultsPackageDefaults) = learner.names
 
 resultsPackageDefaults$mlr.classif.svm$default$default$gamma = "1/p"
 resultsPackageDefaults$mlr.classif.ranger$default$default$mtry = "sqrt(p)"
 
-save(bmr_surrogate, results, resultsPackageDefaults, file = "results.RData")
+save(bmr_surrogate, results, resultsPackageDefaults, file = paste0("results_", measures[k], ".RData"))
 
 # Calculations
 default = resultsPackageDefaults$mlr.classif.rpart$default
@@ -220,7 +232,7 @@ results_cv = list()
 for(i in 1:6) {
   print(i)
   set.seed(3000 + i)
-  load(paste0("surrogates_",i, ".RData"))
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
   
   # CV
   n_surr = length(surrogates$surrogates)
@@ -248,10 +260,11 @@ for(i in 1:6) {
     results_cv[[i]] = list(default = default, optimumHyperpar = optimumHyperpar, optimumTwoHyperpar = optimumTwoHyperpar)
     gc()
   }
-  save(results, resultsPackageDefaults, results_cv, file = "results.RData")
+  save(results, resultsPackageDefaults, results_cv, file = paste0("results_", measures[k], ".RData"))
 }
 names(results_cv) = learner.names
-save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = "results.RData")
+save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = paste0("results_", measures[k], ".RData"))
+}
 
 # overall tunability, cross-validated
 for(i in seq_along(learner.names)){
