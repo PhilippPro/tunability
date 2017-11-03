@@ -122,35 +122,55 @@ server = function(input, output) {
    }
  }, digits = 3)
  
- output$visual = renderUI({
-   selectInput('visual', 'Visualization of the tunability', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
- })
- 
- output$visual2 = renderUI({
-   selectInput('visual2', 'Hyperparameter', c("All", names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
- })
- 
- output$plot3 = renderPlotly({
-   if (input$visual2 == "All") {
-     if (input$scaled) {
-       x = overall()/overall()
-     } else {
-       x = overall()
-     }
-   } else {
-     if (input$scaled) {
-       x = tunabilityValues()[, input$visual2]/overall()
-     } else {
-       x = tunabilityValues()[, input$visual2]
-     }
-   }
-   if (input$visual == "Density") {
-     ggplot(data.frame(x), aes(x)) + geom_density() + ggtitle("Density of the Overall Tunability")
-     } else {
-     ggplot(data.frame(x), aes(x)) + geom_histogram(bins = input$bins, stat = "bin", fill = "green", colour = "black") + 
-         xlim(range(x)) + ggtitle("Histogram of the Overall Tunability")
-   }
- })
+output$plot3 = renderPlotly({
+  dataf = data.frame(overall(), tunabilityValues())
+  colnames(dataf)[1] = "overall"
+  column.names = colnames(dataf)
+  dataf = stack(dataf)
+  dataf$ind = factor(dataf$ind, column.names)
+  ggplot(dataf, aes(x = ind, y = values)) + geom_boxplot() + scale_y_continuous(limits=c(input$yrange[1],input$yrange[2])) + 
+   ylab("tunability per dataset") #+ xlab("parameter") # for the x axis label  # + ggtitle(substring(learner.names[i], 13))
+})
+
+output$visual = renderUI({
+ selectInput('visual', 'Visualization of the tunability', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
+})
+
+output$visual3 = renderUI({
+  selectInput('visual3', 'Hyperparameter', c(names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
+})
+
+output$plot4 = renderPlotly({
+  dataf = data.frame(resultsInput()$optimum$par.set[,input$visual3])
+  name = input$visual3
+  ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+})
+
+
+# output$visual2 = renderUI({
+#   selectInput('visual2', 'Hyperparameter', c("All", names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
+# })
+ # output$plot5 = renderPlotly({
+ #   if (input$visual2 == "All") {
+ #     if (input$scaled) {
+ #       x = overall()/overall()
+ #     } else {
+ #       x = overall()
+ #     }
+ #   } else {
+ #     if (input$scaled) {
+ #       x = tunabilityValues()[, input$visual2]/overall()
+ #     } else {
+ #       x = tunabilityValues()[, input$visual2]
+ #     }
+ #   }
+ #   if (input$visual == "Density") {
+ #     ggplot(data.frame(x), aes(x)) + geom_density() + ggtitle("Density of the Overall Tunability")
+ #     } else {
+ #     ggplot(data.frame(x), aes(x)) + geom_histogram(bins = input$bins, stat = "bin", fill = "green", colour = "black") + 
+ #         xlim(range(x)) + ggtitle("Histogram of the Overall Tunability")
+ #   }
+ # })
  
  output$quantile = renderUI({
    numericInput('quantile', 'Quantile for Tuning Space Calculation', 0.1, min = 0, max = 1)
@@ -226,13 +246,11 @@ makeLearnerParamUI = function(results_algo) {
 
 ui = fluidPage(
   titlePanel("Summary of the benchmark results (AUC)"),
-  
   sidebarLayout(
     sidebarPanel(
       #uiOutput("task"),
       uiOutput("algorithm")
     ),
-    
     tabsetPanel(
       tabPanel("Surrogate models comparison", 
         fluidRow(
@@ -252,8 +270,11 @@ ui = fluidPage(
             column(12, uiOutput("scaled")),
             column(12, fluidRow(
             column(1, "Overall mean tunability", tableOutput("overallTunability")), 
-            column(11, "Hyperparameters", tableOutput("tunability"))
+            column(11, "Hyperparameters (mean)", tableOutput("tunability"))
           )))),
+        plotlyOutput("plot3", inline = F),
+        sliderInput("yrange",  "Y-range:", min = 0, max = 0.5, value = c(0, 0.025), width = "800px"),
+        
         hr(),
         fluidRow(column(12, h4("Tuning Space"),
           column(12, uiOutput("quantile")),
@@ -261,14 +282,17 @@ ui = fluidPage(
           column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
         )),
         hr(),
-        fluidRow(column(6, uiOutput("visual")),
-          column(6, uiOutput("visual2"))),
-        plotlyOutput("plot3", inline = F),
+        fluidRow(column(12, h4("Histogram of best hyperparameters on all datasets (Prior for tuning)")),
+        column(12, uiOutput("visual3"))),
+        plotlyOutput("plot4", inline = F)
+        #fluidRow(column(6, uiOutput("visual")),
+        #  column(6, uiOutput("visual2")))
+        #plotlyOutput("plot5", inline = F),
         
-        conditionalPanel(
-          condition = "input.visual == 'Histogram'",
-          sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
-        )
+       # conditionalPanel(
+       # condition = "input.visual == 'Histogram'",
+       #   sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
+       # )
   
       ),
       tabPanel("Interaction effects",
