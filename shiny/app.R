@@ -143,7 +143,14 @@ output$visual3 = renderUI({
 output$plot4 = renderPlotly({
   dataf = data.frame(resultsInput()$optimum$par.set[,input$visual3])
   name = input$visual3
-  ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+  num = is.numeric(dataf[,1])
+  if(num) {
+    dataf = dataf[dataf[,1]!=-11, , drop = F]
+    ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+  } else {
+    ggplot(data=dataf, aes(dataf[,1])) + geom_bar(aes(y = (..count..)/sum(..count..)), col = "black", fill = "white") + 
+      xlab(name) + ylab("relative frequency")
+  }
 })
 
 
@@ -282,7 +289,7 @@ ui = fluidPage(
           column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
         )),
         hr(),
-        fluidRow(column(12, h4("Histogram of best hyperparameters on all datasets (Prior for tuning)")),
+        fluidRow(column(12, h4("Histogram of best hyperparameter on each of the datasets (Prior for tuning)")),
         column(12, uiOutput("visual3"))),
         plotlyOutput("plot4", inline = F)
         #fluidRow(column(6, uiOutput("visual")),
