@@ -22,7 +22,7 @@ convertPackageDefault = function(def, surr, tbl.metaFeatures, tbl.results) {
     select(., -quality) %>%
     inner_join(., matching_task_data, by = "data_id")
   p = as.numeric(filter(n_feats, task_id == task_idi)$value)
-
+  
   if ("mtry" %in% names(def)) {
     def$mtry = floor(sqrt(p))/p
   }

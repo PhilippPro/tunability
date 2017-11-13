@@ -60,19 +60,25 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
   bot.table = inner_join(tbl.results, tbl.hypPars.learner, by = "setup") %>%
     select(., -run_id, -setup, -fullName)
 
-  # Scale mtry in random forest
+  # Scale mtry and min.node.size in random forest
   if(learner.name == "mlr.classif.ranger"){
     n_feats = filter(tbl.metaFeatures, quality == "NumberOfFeatures") %>%
       select(., -quality)
     n_feats$value = as.numeric(n_feats$value)
-    
     bot.table = inner_join(bot.table, n_feats, by = "data_id")
     bot.table$mtry = bot.table$mtry/bot.table$value
+    bot.table = bot.table %>% select(., -value)
+    
+    n_inst = filter(tbl.metaFeatures, quality == "NumberOfInstances") %>%
+      select(., -quality)
+    n_inst$value = as.numeric(n_inst$value)
+    bot.table = inner_join(bot.table, n_inst, by = "data_id")
+    bot.table$min.node.size = log(bot.table$min.node.size, 2) / log(bot.table$value, 2)
     bot.table = bot.table %>% select(., -value)
   }
   
   bot.table = bot.table %>% select(., -data_id)
-  colnames(bot.table)[2] = "measure.value"
+  colnames(bot.table)[colnames(bot.table) == measure.name] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
   # select only runs on the specific task.ids

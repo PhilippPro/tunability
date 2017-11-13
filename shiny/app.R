@@ -144,9 +144,20 @@ output$plot4 = renderPlotly({
   dataf = data.frame(resultsInput()$optimum$par.set[,input$visual3])
   name = input$visual3
   num = is.numeric(dataf[,1])
+  
+  inputi = "mlr.classif.glmnet"
+  if(!is.null(input$algo))
+    inputi = input$algo
+  
   if(num) {
     dataf = dataf[dataf[,1]!=-11, , drop = F]
-    ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+    learner.i = which(learner.names == inputi)
+    TRAFO = is.null(lrn.par.set[[learner.i]][[2]]$pars[[name]]$trafo)
+    if(TRAFO) {
+      ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+    } else {
+      ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name) + scale_x_continuous(trans = "log10")
+    }
   } else {
     ggplot(data=dataf, aes(dataf[,1])) + geom_bar(aes(y = (..count..)/sum(..count..)), col = "black", fill = "white") + 
       xlab(name) + ylab("relative frequency")
@@ -206,11 +217,11 @@ output$plot4 = renderPlotly({
     if(input$combination == "Tunability") {
       diag(tab) = tunabilityValuesMean()
     } else {
-    if(input$combination == "Interaction effect") {
-      tab = tab - mean(outer(tunabilityValuesMean(), tunabilityValuesMean(), '+'))
-    } else {
-      tab = tab - outer(tunabilityValuesMean(), tunabilityValuesMean(), pmax)
-    }
+      if(input$combination == "Interaction effect") {
+        tab = tab - outer(tunabilityValuesMean(), tunabilityValuesMean(), '+')
+      } else {
+        tab = tab - outer(tunabilityValuesMean(), tunabilityValuesMean(), pmax)
+      }
     }
     colnames(tab) = rownames(tab) = names(tunabilityValuesMean())
     tab
