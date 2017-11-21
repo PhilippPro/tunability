@@ -18,6 +18,7 @@ tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf
 library(stringi)
 learner.names = paste0("mlr.", names(lrn.par.set))
 learner.names = stri_sub(learner.names, 1, -5)
+measures = c("auc", "accuracy", "brier")
 
 ################################ Plot learning curve
 surrogate.mlr.lrns = list(
@@ -27,7 +28,7 @@ surrogate.mlr.lrns = list(
 bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 measure = c("auc")
-measures = c("auc", "accuracy", "brier")
+
 
 setup = numeric()
 algos = unique(tbl.hypPars$fullName)
@@ -74,10 +75,10 @@ for (i in seq_along(learner.names)) {
   print(i)
   set.seed(521 + i)
   if(i == 4) { # task.id 146085, 14966 does not work for svm
-    bmr[[i]] = compareSurrogateModels(measure.name = measure, learner.name = learner.names[i], 
+    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
       task.ids = task.ids[!(task.ids %in% c(146085, 14966))], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   } else {
-    bmr[[i]] = compareSurrogateModels(measure.name = measure, learner.name = learner.names[i], 
+    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
       task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   }
   gc()
@@ -119,9 +120,10 @@ task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 # c("272", "282", "3896", "3917", "7295", "9889", "9910", "9911", "9957", "9976", "34539", "145834", "145836", "145847", "145848",
 #  "145853", "145854", "145857", "145862", "145872", "145878", "145972", "145976", "145979", "146012", "146064", "146066", "146082", "146085")
 
+# Change the sign for the brier score to get the correct results
+tbl.results$brier = -tbl.results$brier
 
-
-for(k in seq_along(measures)) {
+for(k in 2:3) {
 
 configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
 library("parallelMap")
@@ -205,6 +207,15 @@ tunability = calculateTunability(default, optimumHyperpar)
 data.frame(t(colMeans(tunability)))
 # scaled
 data.frame(t(colMeans(tunability/overallTunability, na.rm = T)))
+
+default$default[is.numeric(default$default)] = default$default[,is.numeric(default$default)]
+
+def = default$default
+
+for(i in 1:length(def)) {
+  if(is.numeric(def[[i]]))
+    def[[i]] = round(def[[i]], 3)
+}
 
 # Interaction
 # Bare values
@@ -347,13 +358,18 @@ save(bmr_surrogate, results, resultsPackageDefaults, results_cv, lrn.par.set, fi
 for(i in seq_along(learner.names)){
   print(learner.names[i])
   print(mean(calculateTunability(results[[i]]$default, results[[i]]$optimum)))
-  print(mean(results[[i]]$optimum$optimum - c(sapply(results_cv[[i]]$default, "[[", 2))))
+  print(mean(results[[i]]$optimum$optimum - unlist(sapply(results_cv[[i]]$default, "[[", 2))))
 }
 for(i in seq_along(learner.names)){
   print(learner.names[i])
   print(rbind(colMeans(calculateTunability(results[[i]]$default, results[[i]]$optimumHyperpar)),
-  colMeans(do.call(rbind, unlist(results_cv[[i]]$optimumHyperpar, recursive=FALSE)) - c(sapply(results_cv[[i]]$default, "[[", 2)))))
+  colMeans(do.call(rbind, unlist(results_cv[[i]]$optimumHyperpar, recursive=FALSE)) - unlist(sapply(results_cv[[i]]$default, "[[", 2)))))
 }
 
 
 # Annex
+
+lrn.regr = makeLearner("regr.ksvm")
+fit.regr = train(lrn.regr, bh.task)
+fa = generateFunctionalANOVAData(fit.regr, bh.task, "lstat", depth = 1, fun = median)
+
