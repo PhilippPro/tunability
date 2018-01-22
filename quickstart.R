@@ -15,20 +15,8 @@ tbl.results = collect(tbl(local.db, sql("SELECT * FROM [tbl.results]")), n = Inf
 tbl.metaFeatures = collect(tbl(local.db, sql("SELECT * FROM [tbl.metaFeatures]")), n = Inf)
 tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf)
 
-library(stringi)
-learner.names = paste0("mlr.", names(lrn.par.set))
-learner.names = stri_sub(learner.names, 1, -5)
-measures = c("auc", "accuracy", "brier")
-
-################################ Plot learning curve
-surrogate.mlr.lrns = list(
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
-)
-
-bmr = list()
+################################ Restrict data to 500000 results for each algorithm
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
-measure = c("auc")
-
 
 setup = numeric()
 algos = unique(tbl.hypPars$fullName)
@@ -48,11 +36,11 @@ for(i in seq_along(algos)) {
   kumi = sort(table(results_i$task_id))
   
   kumi_val = numeric(length(kumi))
-  kumi_val[1] = kumi[1] * 61
+  kumi_val[1] = kumi[1] * length(kumi)
     for(j in 2:length(kumi)) {
-      kumi_val[j] = cumsum(kumi)[j-1] + kumi[j]*(61-j + 1)
+      kumi_val[j] = cumsum(kumi)[j-1] + kumi[j]*(length(kumi)-j + 1)
     }
-  maximo = max(kumi[kumi_val < 300000])
+  maximo = max(kumi[kumi_val < 500000])
   good_ids = names(kumi[kumi <= maximo])
   bad_ids = names(kumi[kumi > maximo])
   
@@ -66,11 +54,27 @@ for(i in seq_along(algos)) {
 tbl.results = tbl.results[tbl.results$setup %in% setup,]
 tbl.hypPars = tbl.hypPars[tbl.hypPars$setup %in% setup,]
 
-k = 1
+# Change the sign for the brier score to get the correct results
+tbl.results$brier = -tbl.results$brier
+
+library(stringi)
+learner.names = paste0("mlr.", names(lrn.par.set))
+learner.names = stri_sub(learner.names, 1, -5)
+measures = c("auc", "accuracy", "brier")
+measure = c("auc")
+
+
+################################ Light version of surrogate model comparison with only random forest as surrogate model
+surrogate.mlr.lrns = list(
+  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
+)
+
+bmr = list()
 
 configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
 library("parallelMap")
 parallelStartSocket(4)
+k = 1
 for (i in seq_along(learner.names)) {
   print(i)
   set.seed(521 + i)
@@ -82,16 +86,27 @@ for (i in seq_along(learner.names)) {
       task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   }
   gc()
-  save(bmr, file = paste0("results_250000_", measures[k], ".RData"))
+  save(bmr, file = paste0("results_500000_", measures[k], ".RData"))
 }
-
+load(paste0("results_500000_", measures[k], ".RData"))
 bmr_surrogate = bmr
 
-################################ Compare different surrogate models
 
-tbl.results = collect(tbl(local.db, sql("SELECT * FROM [tbl.results]")), n = Inf)
-tbl.metaFeatures = collect(tbl(local.db, sql("SELECT * FROM [tbl.metaFeatures]")), n = Inf)
-tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf)
+for(i in 1:5) {
+  perfs = data.table(getBMRAggrPerformances(bmr[[i]], as.df = T, drop = T))[, -"task.id"]
+  # delete datasets with missing results
+  error.results = which(is.na(perfs$kendalltau.test.mean) | perfs$rsq.test.mean < 0)
+  error.results = unlist(lapply(unique(floor(error.results/5 - 0.0001)), 
+    function(x) x + seq(0.2, 1, 0.2)))*5
+  if(length(error.results)!=0)
+    perfs = perfs[-error.results,]
+  perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
+    spearmanrho = spearmanrho.test.mean),function(x) mean(x)), by = "learner.id"])
+  perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
+  print(perfs)
+}
+
+################################ Compare different surrogate models (complete)
 
 # only models which do not have to be tuned!
 surrogate.mlr.lrns = list(
@@ -111,39 +126,25 @@ surrogate.mlr.lrns = list(
 bmr = list()
 task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
-# whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., task_id, fullName)
-# cross.table = table(whole.table$task_id, whole.table$fullName)
-# bigger = rowSums(cross.table > 200)
-# task.ids2 = names(bigger)[bigger == 6] 
-# 
-# rownames(cross.table)[cross.table[,2] < 200]
-# c("272", "282", "3896", "3917", "7295", "9889", "9910", "9911", "9957", "9976", "34539", "145834", "145836", "145847", "145848",
-#  "145853", "145854", "145857", "145862", "145872", "145878", "145972", "145976", "145979", "146012", "146064", "146066", "146082", "146085")
-
-# Change the sign for the brier score to get the correct results
-tbl.results$brier = -tbl.results$brier
-
-for(k in 2:3) {
-
-configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
-library("parallelMap")
-parallelStartSocket(4)
-for (i in seq_along(learner.names)) {
-  print(i)
-  set.seed(521 + i)
-  if(i == 4) { # task.id 146085, 14966 does not work for svm
-    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-      task.ids = task.ids[!(task.ids %in% c(146085, 14966))], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-  } else {
-  bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-    task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+for(k in 1:3) {
+  configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
+  library("parallelMap")
+  parallelStartSocket(4)
+  for (i in seq_along(learner.names)) {
+    print(i)
+    set.seed(521 + i)
+    if(i == 4) { # task.id 146085, 14966 does not work for svm
+      bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
+        task.ids = task.ids[!(task.ids %in% c(146085, 14966))], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+    } else {
+      bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
+        task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+    }
+    gc()
+    save(bmr, file = paste0("results_", measures[k], ".RData"))
   }
-  gc()
-  save(bmr, file = paste0("results_", measures[k], ".RData"))
-}
 parallelStop()
 names(bmr) = learner.names
-
 
 for(i in seq_along(bmr)) {
   print(i)
@@ -198,9 +199,9 @@ for(i in seq_along(learner.names)) {
 names(results) = learner.names
 
 # Calculations
-default = results$mlr.classif.xgboost$default
-optimum = results$mlr.classif.xgboost$optimum
-optimumHyperpar = results$mlr.classif.xgboost$optimumHyperpar
+default = results$mlr.classif.ranger$default
+optimum = results$mlr.classif.ranger$optimum
+optimumHyperpar = results$mlr.classif.ranger$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
@@ -269,9 +270,9 @@ resultsPackageDefaults$mlr.classif.ranger$default$default$min.node.size = "1"
 save(bmr_surrogate, results, resultsPackageDefaults, file = paste0("results_", measures[k], ".RData"))
 
 # Calculations
-default = resultsPackageDefaults$mlr.classif.rpart$default
-optimum = results$mlr.classif.rpart$optimum
-optimumHyperpar = resultsPackageDefaults$mlr.classif.rpart$optimumHyperpar
+default = resultsPackageDefaults$mlr.classif.ranger$default
+optimum = results$mlr.classif.ranger$optimum
+optimumHyperpar = resultsPackageDefaults$mlr.classif.ranger$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 
@@ -349,10 +350,8 @@ for(i in 1:6) {
   save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = paste0("results_", measures[k], ".RData"))
 }
 names(results_cv) = learner.names
-save(bmr_surrogate, results, resultsPackageDefaults, results_cv, file = paste0("results_", measures[k], ".RData"))
-}
-
 save(bmr_surrogate, results, resultsPackageDefaults, results_cv, lrn.par.set, file = paste0("results_", measures[k], ".RData"))
+}
 
 # overall tunability, cross-validated
 for(i in seq_along(learner.names)){

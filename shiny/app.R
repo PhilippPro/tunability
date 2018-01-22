@@ -22,11 +22,13 @@ names = load("../results_accuracy.RData")
 for(i in seq_along(names))
   results_accuracy[[i]] = get(names[i])
 names(results_accuracy) = names
-# names = load("../results_brier.RData")
-# for(i in seq_along(names))
-#   results_brier[[i]] = get(names[i])
-# names(results_brier) = names
-results_all = list(auc = results_auc, accuracy = results_accuracy)
+results_brier = NULL
+names = load("../results_brier.RData")
+for(i in seq_along(names))
+  results_brier[[i]] = get(names[i])
+names(results_brier) = names
+
+results_all = list(auc = results_auc, accuracy = results_accuracy, brier = results_brier)
 
 #load(file = "../results.RData")
 #load(file = "../surrogates.RData")
