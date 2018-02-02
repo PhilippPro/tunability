@@ -8,29 +8,29 @@
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @param min.experiments minimum number of experiments that should be available for a dataset, otherwise the dataset is excluded
 #' @return surrogate model
-makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results, 
+makeSurrogateModels = function(measure.name, learner.name, data.ids, tbl.results, 
   tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn) {
 
   param.set = lrn.par.set[[which(names(lrn.par.set) == paste0(substr(learner.name, 5, 100), ".set"))]]$param.set
   #train mlr model on full table for measure
-  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, task.ids)
+  task.data = makeBotTable(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, data.ids)
   task.data = data.frame(task.data)
   task.data = deleteNA(task.data)
   
   # get specific task ids
-  if(!is.null(task.ids)) {
-    uni = unique(task.data$task_id)
-    task.ids = sort(uni[uni %in% task.ids])
+  if(!is.null(data.ids)) {
+    uni = unique(task.data$data_id)
+    data.ids = sort(uni[uni %in% data.ids])
   } else {
-    task.ids = sort(unique(task.data$task_id))
+    data.ids = sort(unique(task.data$data_id))
   }
   
   mlr.mod.measure = list()
-  for(i in seq_along(task.ids)) {
-    print(paste("surrogate train: task", i, "of", length(task.ids)))
-    task.idi = task.ids[i]
+  for(i in seq_along(data.ids)) {
+    print(paste("surrogate train: task", i, "of", length(data.ids)))
+    data.idi = data.ids[i]
     
-    mlr.task.measure = makeRegrTask(id = as.character(task.idi), subset(task.data, task_id == task.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
+    mlr.task.measure = makeRegrTask(id = as.character(data.idi), subset(task.data, data_id == data.idi, select =  c("measure.value", names(param.set$pars))), target = "measure.value")
     mlr.lrn = surrogate.mlr.lrn
     mlr.mod.measure[[i]] = train(mlr.lrn, mlr.task.measure)
     gc()
@@ -46,7 +46,7 @@ makeSurrogateModels = function(measure.name, learner.name, task.ids, tbl.results
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
 #' @param tbl.metaFeatures df with getMlrRandomBotHyperpars()
 #' @return [\code{data.frame}] Complete table used for creating the surrogate model 
-makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, task.ids) {
+makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeatures, tbl.hypPars, param.set, data.ids) {
   
   tbl.hypPars.learner = tbl.hypPars[tbl.hypPars$fullName == learner.name, ]
   tbl.hypPars.learner = spread(tbl.hypPars.learner, name, value)
@@ -82,7 +82,7 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
   # select only runs on the specific task.ids
-  bot.table =  subset(bot.table, task_id %in% task.ids)
+  bot.table =  subset(bot.table, data_id %in% data.ids)
   
   return(bot.table)
 }
@@ -101,10 +101,10 @@ conversion_function = function(x, param_type) {
 #' @param tbl.results 
 #' @param tbl.hypPars 
 #' @param min.experiments 
-calculateTaskIds = function(tbl.results, tbl.hypPars, min.experiments = 200) {
-  whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., task_id, fullName)
-  cross.table = table(whole.table$task_id, whole.table$fullName)
+calculateDataIds = function(tbl.results, tbl.hypPars, min.experiments = 200) {
+  whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., data_id, fullName)
+  cross.table = table(whole.table$data_id, whole.table$fullName)
   bigger = rowSums(cross.table > min.experiments)
-  task.ids = names(bigger)[bigger == 6] 
-  return(task.ids)
+  data.ids = names(bigger)[bigger == 6] 
+  return(data.ids)
 }
