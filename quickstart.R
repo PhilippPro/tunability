@@ -16,7 +16,7 @@ tbl.metaFeatures = collect(tbl(local.db, sql("SELECT * FROM [tbl.metaFeatures]")
 tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf)
 
 ################################ Restrict data to 500000 results for each algorithm
-task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
+data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 setup = numeric()
 algos = unique(tbl.hypPars$fullName)
@@ -28,12 +28,12 @@ for(i in seq_along(algos)) {
   hyp_pars = unique(results_i$name)
   results_i = spread(results_i, name, value)
   results_i = merge(results_i, tbl.results, by = "setup")
-  results_i = results_i[results_i$task_id %in% task.ids,]
+  results_i = results_i[results_i$data_id %in% data.ids,]
   if(i == 5) {
     results_i = results_i[results_i$min.node.size != 1, ]
   }
   
-  kumi = sort(table(results_i$task_id))
+  kumi = sort(table(results_i$data_id))
   
   kumi_val = numeric(length(kumi))
   kumi_val[1] = kumi[1] * length(kumi)
@@ -44,10 +44,10 @@ for(i in seq_along(algos)) {
   good_ids = names(kumi[kumi <= maximo])
   bad_ids = names(kumi[kumi > maximo])
   
-  setup = c(setup, results_i$setup[results_i$task_id %in% good_ids])
+  setup = c(setup, results_i$setup[results_i$data_id %in% good_ids])
   for(j in seq_along(bad_ids)) {
     print(paste(i,j))
-    setup_bad = sample(results_i$setup[results_i$task_id %in% bad_ids[j]], maximo, replace = F)
+    setup_bad = sample(results_i$setup[results_i$data_id %in% bad_ids[j]], maximo, replace = F)
     setup = c(setup, setup_bad)
   }
 }
@@ -78,13 +78,9 @@ k = 1
 for (i in seq_along(learner.names)) {
   print(i)
   set.seed(521 + i)
-  if(i == 4) { # task.id 146085, 14966 does not work for svm
+ # task.id 146085, 14966 does not work for svm
     bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-      task.ids = task.ids[!(task.ids %in% c(146085, 14966))], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-  } else {
-    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-      task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-  }
+      data.ids = data.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
   gc()
   save(bmr, file = paste0("results_500000_", measures[k], ".RData"))
 }
@@ -133,13 +129,9 @@ for(k in 1:3) {
   for (i in seq_along(learner.names)) {
     print(i)
     set.seed(521 + i)
-    if(i == 4) { # task.id 146085, 14966 does not work for svm
+    # task.id 146085, 14966 does not work for svm
       bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-        task.ids = task.ids[!(task.ids %in% c(146085, 14966))], tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-    } else {
-      bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-        task.ids = task.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-    }
+        data.ids = data.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
     gc()
     save(bmr, file = paste0("results_", measures[k], ".RData"))
   }
@@ -172,7 +164,7 @@ for(i in seq_along(learner.names)) {
   set.seed(199 + i)
   # Surrogate model calculation
   surrogates = makeSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-    task.ids = task.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn)
+    data.ids = data.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrn)
   save(surrogates, file = paste0("surrogates_", measures[k], "_", i, ".RData"))
 }
 
