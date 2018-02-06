@@ -77,11 +77,11 @@ makeBotTable = function(measure.name, learner.name, tbl.results, tbl.metaFeature
     bot.table = bot.table %>% select(., -value)
   }
   
-  bot.table = bot.table %>% select(., -data_id)
+  bot.table = bot.table %>% select(., -task_id)
   colnames(bot.table)[colnames(bot.table) == measure.name] = "measure.value"
   bot.table$measure.value = as.numeric(bot.table$measure.value)
   
-  # select only runs on the specific task.ids
+  # select only runs on the specific data.ids
   bot.table =  subset(bot.table, data_id %in% data.ids)
   
   return(bot.table)

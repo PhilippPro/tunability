@@ -120,7 +120,7 @@ surrogate.mlr.lrns = list(
 )
 
 bmr = list()
-task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
+data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
@@ -157,7 +157,7 @@ save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
 results = list()
 
-task.ids = calculateTaskIds(tbl.results, tbl.hypPars, min.experiments = 200)
+task.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 for(i in seq_along(learner.names)) {
   print(i)
