@@ -17,6 +17,9 @@ tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf
 
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
+# Only results for OpenML100 datasets
+tasks = listOMLTasks(number.of.classes = 2L, tag = "OpenML100", estimation.procedure = "10-fold Crossvalidation", number.of.missing.values = 0)
+data.ids = data.ids[data.ids %in% tasks$data.id]
 
 setup = numeric()
 algos = unique(tbl.hypPars$fullName)
