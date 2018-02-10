@@ -1,7 +1,7 @@
 library(devtools)
 # replace this by database from web?
-OMLbots_path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots"
-# OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
+#OMLbots_path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots"
+OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
 load_all(OMLbots_path)
 load_all()
 lrn.par.set = getMultipleLearners()
@@ -21,7 +21,7 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 tasks = listOMLTasks(number.of.classes = 2L, tag = "OpenML100", estimation.procedure = "10-fold Crossvalidation", number.of.missing.values = 0)
 data.ids = data.ids[data.ids %in% tasks$data.id]
 
-setup = numeric()
+run.ids = numeric()
 algos = unique(tbl.hypPars$fullName)
 algos = algos[c(2, 3, 1, 4, 5, 6)]
 set.seed(123)
@@ -30,7 +30,7 @@ for(i in seq_along(algos)) {
   results_i = tbl.hypPars[tbl.hypPars$fullName == algos[i],]
   hyp_pars = unique(results_i$name)
   results_i = spread(results_i, name, value)
-  results_i = merge(results_i, tbl.results, by = "setup")
+  results_i = merge(results_i, tbl.results, by = "setup", all.x = T, all.y = F)
   results_i = results_i[results_i$data_id %in% data.ids,]
   if(i == 5) {
     results_i = results_i[results_i$min.node.size != 1, ]
@@ -40,22 +40,31 @@ for(i in seq_along(algos)) {
   
   kumi_val = numeric(length(kumi))
   kumi_val[1] = kumi[1] * length(kumi)
-    for(j in 2:length(kumi)) {
-      kumi_val[j] = cumsum(kumi)[j-1] + kumi[j]*(length(kumi)-j + 1)
-    }
+  for(j in 2:length(kumi)) {
+    kumi_val[j] = cumsum(kumi)[j-1] + kumi[j]*(length(kumi)-j + 1)
+  }
   maximo = max(kumi[kumi_val < 500000])
   good_ids = names(kumi[kumi <= maximo])
   bad_ids = names(kumi[kumi > maximo])
   
-  setup = c(setup, results_i$setup[results_i$data_id %in% good_ids])
+  rest = 500000 - max(kumi_val[kumi_val < 500000])
+  
+  if (i != 3){
+  extra_nr = floor(rest/length(bad_ids))
+  # fill up to 500000
+  rest2 = rest - extra_nr * length(bad_ids)
+  extra_ids = sample(c(rep(1, rest2), rep(0, length(bad_ids)- rest2)))
+  } 
+  run.ids = c(run.ids, results_i$run_id[results_i$data_id %in% good_ids])
   for(j in seq_along(bad_ids)) {
     print(paste(i,j))
-    setup_bad = sample(results_i$setup[results_i$data_id %in% bad_ids[j]], maximo, replace = F)
-    setup = c(setup, setup_bad)
+    setup_bad = sample(results_i$run_id[results_i$data_id %in% bad_ids[j]], maximo + extra_nr + extra_ids[j], replace = F)
+    run.ids = c(run.ids, setup_bad)
   }
+  print(length(run.ids))
 }
-tbl.results = tbl.results[tbl.results$setup %in% setup,]
-tbl.hypPars = tbl.hypPars[tbl.hypPars$setup %in% setup,]
+tbl.results = tbl.results[tbl.results$run_id %in% run.ids,]
+tbl.hypPars = tbl.hypPars[tbl.hypPars$setup %in% unique(tbl.results$setup),]
 
 # Change the sign for the brier score to get the correct results
 tbl.results$brier = -tbl.results$brier
@@ -194,9 +203,9 @@ for(i in seq_along(learner.names)) {
 names(results) = learner.names
 
 # Calculations
-default = results$mlr.classif.ranger$default
-optimum = results$mlr.classif.ranger$optimum
-optimumHyperpar = results$mlr.classif.ranger$optimumHyperpar
+default = results$mlr.classif.xgboost$default
+optimum = results$mlr.classif.xgboost$optimum
+optimumHyperpar = results$mlr.classif.xgboost$optimumHyperpar
 overallTunability = calculateTunability(default, optimum)
 mean(overallTunability)
 tunability = calculateTunability(default, optimumHyperpar)
