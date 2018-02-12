@@ -1,7 +1,7 @@
 #' Compare different surrogate models
 #' @param measure.name Name of the measure to optimize
 #' @param learner.name Name of learner
-#' @param task_ids [\code{numeric}] ids of the tasks
+#' @param data.ids [\code{numeric}] ids of the dataset
 #' @param lrn.par.set learner-parameter set which should include relevant bounds for flow
 #' @param tbl.results df with getMlrRandomBotResults()
 #' @param tbl.hypPars df with getMlrRandomBotHyperpars()
