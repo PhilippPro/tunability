@@ -1,19 +1,13 @@
 library(devtools)
-# replace this by database from web?
 #OMLbots_path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots"
-OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
-load_all(OMLbots_path)
+#OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
+#load_all(OMLbots_path)
 load_all()
 lrn.par.set = getMultipleLearners()
 
-################################ Database extraction
-
-path = paste0(OMLbots_path, "/mlrRandomBotDatabaseSnapshot.db")
-local.db = src_sqlite(path, create = FALSE)
-
-tbl.results = collect(tbl(local.db, sql("SELECT * FROM [tbl.results]")), n = Inf)
-tbl.metaFeatures = collect(tbl(local.db, sql("SELECT * FROM [tbl.metaFeatures]")), n = Inf)
-tbl.hypPars = collect(tbl(local.db, sql("SELECT * FROM [tbl.hypPars]")), n = Inf)
+# Get file from the figshare repository
+download.file("https://ndownloader.figshare.com/files/10462297", destfile = "OpenMLRandomBotResultsFinal.RData")
+load("OpenMLRandomBotResultsFinal.RData")
 
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
@@ -21,50 +15,6 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 tasks = listOMLTasks(number.of.classes = 2L, tag = "OpenML100", estimation.procedure = "10-fold Crossvalidation", number.of.missing.values = 0)
 data.ids = data.ids[data.ids %in% tasks$data.id]
 
-run.ids = numeric()
-algos = unique(tbl.hypPars$fullName)
-algos = algos[c(2, 3, 1, 4, 5, 6)]
-set.seed(123)
-for(i in seq_along(algos)) {
-  print(i)
-  results_i = tbl.hypPars[tbl.hypPars$fullName == algos[i],]
-  hyp_pars = unique(results_i$name)
-  results_i = spread(results_i, name, value)
-  results_i = merge(results_i, tbl.results, by = "setup", all.x = T, all.y = F)
-  results_i = results_i[results_i$data_id %in% data.ids,]
-  if(i == 5) {
-    results_i = results_i[results_i$min.node.size != 1, ]
-  }
-  
-  kumi = sort(table(results_i$data_id))
-  
-  kumi_val = numeric(length(kumi))
-  kumi_val[1] = kumi[1] * length(kumi)
-  for(j in 2:length(kumi)) {
-    kumi_val[j] = cumsum(kumi)[j-1] + kumi[j]*(length(kumi)-j + 1)
-  }
-  maximo = max(kumi[kumi_val < 500000])
-  good_ids = names(kumi[kumi <= maximo])
-  bad_ids = names(kumi[kumi > maximo])
-  
-  rest = 500000 - max(kumi_val[kumi_val < 500000])
-  
-  if (i != 3){
-  extra_nr = floor(rest/length(bad_ids))
-  # fill up to 500000
-  rest2 = rest - extra_nr * length(bad_ids)
-  extra_ids = sample(c(rep(1, rest2), rep(0, length(bad_ids)- rest2)))
-  } 
-  run.ids = c(run.ids, results_i$run_id[results_i$data_id %in% good_ids])
-  for(j in seq_along(bad_ids)) {
-    print(paste(i,j))
-    setup_bad = sample(results_i$run_id[results_i$data_id %in% bad_ids[j]], maximo + extra_nr + extra_ids[j], replace = F)
-    run.ids = c(run.ids, setup_bad)
-  }
-  print(length(run.ids))
-}
-tbl.results = tbl.results[tbl.results$run_id %in% run.ids,]
-tbl.hypPars = tbl.hypPars[tbl.hypPars$setup %in% unique(tbl.results$setup),]
 
 # Change the sign for the brier score to get the correct results
 tbl.results$brier = -tbl.results$brier
@@ -78,7 +28,7 @@ measure = c("auc")
 
 ################################ Light version of surrogate model comparison with only random forest as surrogate model
 surrogate.mlr.lrns = list(
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE))
+  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order"))
 )
 
 bmr = list()
@@ -121,7 +71,7 @@ surrogate.mlr.lrns = list(
   makeLearner("regr.lm"),
   makeLearner("regr.rpart"),
   makeLearner("regr.kknn"),
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE)),
+  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order")),
   makeLearner("regr.cubist")
   #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
   #makeLearner("regr.svm"),
@@ -137,7 +87,7 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
   library("parallelMap")
-  parallelStartSocket(4)
+  parallelStartSocket(1)
   for (i in seq_along(learner.names)) {
     print(i)
     set.seed(521 + i)
@@ -166,7 +116,7 @@ save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 # Best model in general: ranger, cubist
 
 ################################# Calculate tunability measures
-surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = TRUE, num.threads = 4))
+surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order", num.threads = 4))
 results = list()
 
 task.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
@@ -244,7 +194,7 @@ package.defaults = list(
   rpart = data.frame(cp = 0.01, maxdepth = 30, minbucket = 7, minsplit = 20),
   kknn = data.frame(k = 7),
   svm = data.frame(kernel = "radial", cost = 1, gamma = 1, degree = 3), 
-  ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = FALSE, min.node.size = 0),
+  ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = "order", min.node.size = 0),
   xgboost = data.frame(nrounds = 500, eta = 0.3, subsample = 1, booster = "gbtree", max_depth = 6, min_child_weight = 1,
     colsample_bytree = 1, colsample_bylevel = 1, lambda = 1, alpha = 1)
 )
