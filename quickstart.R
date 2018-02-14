@@ -119,7 +119,7 @@ save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order", num.threads = 4))
 results = list()
 
-task.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
+data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 for(i in seq_along(learner.names)) {
   print(i)
