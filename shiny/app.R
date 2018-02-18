@@ -13,7 +13,7 @@ library(devtools)
 load_all()
 
 results_auc = NULL
-names = load("../results.RData")
+names = load("../results_auc.RData")
 for(i in seq_along(names))
   results_auc[[i]] = get(names[i])
 names(results_auc) = names
