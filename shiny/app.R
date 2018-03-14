@@ -7,31 +7,19 @@ library(shiny)
 # library(shinyBS)
 library(data.table)
 library(DT)
+library(ParamHelpers)
 library(mlr)
 library(devtools)
+library(checkmate)
+library(glmnet)
+library(kknn)
+library(rpart)
+library(e1071)
+library(ranger)
+library(xgboost)
 
-load_all()
-
-results_auc = NULL
-names = load("../results_auc.RData")
-for(i in seq_along(names))
-  results_auc[[i]] = get(names[i])
-names(results_auc) = names
-results_accuracy = NULL
-names = load("../results_accuracy.RData")
-for(i in seq_along(names))
-  results_accuracy[[i]] = get(names[i])
-names(results_accuracy) = names
-results_brier = NULL
-names = load("../results_brier.RData")
-for(i in seq_along(names))
-  results_brier[[i]] = get(names[i])
-names(results_brier) = names
-
-results_all = list(auc = results_auc, accuracy = results_accuracy, brier = results_brier)
-
-#load(file = "../results.RData")
-#load(file = "../surrogates.RData")
+load("results_all.RData")
+source("helpers.R")
 
 server = function(input, output) {
   
