@@ -290,8 +290,8 @@ ui = fluidPage(
           column(12, "Average mean of different surrogate models (for not-NA results)", tableOutput("bmr_result"))),
         fluidRow(
           column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
-        plotOutput("plot1"),
-        plotOutput("plot2")
+        plotOutput("plot1", width = "95%"),
+        plotOutput("plot2", width = "95%")
       ),
       tabPanel("Defaults and Tunability", 
         fluidRow(column(12, uiOutput("defaultchoice"))),
@@ -305,7 +305,7 @@ ui = fluidPage(
               column(1, "Overall mean tunability", tableOutput("overallTunability")), 
               column(11, "Hyperparameters (mean)", tableOutput("tunability"))
             )))),
-        plotlyOutput("plot3", inline = F),
+        plotlyOutput("plot3", width = "95%", inline = F),
         sliderInput("yrange",  "Y-range:", min = 0, max = 0.5, value = c(0, 0.025), width = "800px"),
         
         hr(),
@@ -317,7 +317,7 @@ ui = fluidPage(
         hr(),
         fluidRow(column(12, h4("Histogram of best hyperparameter on each of the datasets (Prior for tuning)")),
           column(12, uiOutput("visual3"))),
-        plotlyOutput("plot4", inline = F)
+        plotlyOutput("plot4", width = "95%", inline = F)
         #fluidRow(column(6, uiOutput("visual")),
         #  column(6, uiOutput("visual2")))
         #plotlyOutput("plot5", inline = F),
