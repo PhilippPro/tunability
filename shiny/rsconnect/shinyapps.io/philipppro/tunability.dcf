@@ -1,12 +1,12 @@
 name: tunability
-title: Tunability
+title: tunability
 username:
 account: philipppro
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
-appId: 299303
-bundleId: 1267995
+appId: 299916
+bundleId: 1269877
 url: https://philipppro.shinyapps.io/tunability/
-when: 1521023650.97843
+when: 1521111471.24745
 asMultiple: FALSE
 asStatic: FALSE
