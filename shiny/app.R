@@ -118,7 +118,7 @@ server = function(input, output) {
   })
   
   output$scaled = renderUI({
-    selectInput('scaled', 'Scaled', c(TRUE, FALSE), selected = FALSE, multiple = FALSE)
+    selectInput('scaled', 'Scaled (per Dataset)', c(TRUE, FALSE), selected = FALSE, multiple = FALSE)
   })
   
   output$overallTunability = renderTable({
