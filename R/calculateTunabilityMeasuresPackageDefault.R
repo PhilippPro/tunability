@@ -19,8 +19,8 @@ convertPackageDefault = function(def, surr, tbl.metaFeatures, tbl.results) {
   
   matching_task_data = unique(tbl.results[, c("data_id")])
   n_feats = filter(tbl.metaFeatures, quality == "NumberOfFeatures") %>%
-    select(., -quality) %>%
-    inner_join(., matching_task_data, by = "data_id")
+    select(., -quality) #%>%
+    #inner_join(., matching_task_data, by = "data_id")
   p = as.numeric(filter(n_feats, data_id == data_idi)$value)
   
   if ("mtry" %in% names(def)) {
