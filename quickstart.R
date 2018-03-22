@@ -6,7 +6,7 @@ load_all()
 lrn.par.set = getMultipleLearners()
 
 # Get file from the figshare repository
-load(url("https://ndownloader.figshare.com/files/10462297"))
+load(url("https://ndownloader.figshare.com/files/10811309"))
 
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
