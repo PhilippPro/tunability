@@ -92,7 +92,7 @@ for(k in 1:3) {
     set.seed(521 + i)
     # task.id 146085, 14966 does not work for svm
       bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-        data.ids = data.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
+        data.ids = data.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
     gc()
     save(bmr, file = paste0("results_", measures[k], ".RData"))
   }

@@ -105,6 +105,6 @@ calculateDataIds = function(tbl.results, tbl.hypPars, min.experiments = 200) {
   whole.table = inner_join(tbl.results, tbl.hypPars, by = "setup") %>% select(., data_id, fullName)
   cross.table = table(whole.table$data_id, whole.table$fullName)
   bigger = rowSums(cross.table > min.experiments)
-  data.ids = names(bigger)[bigger == 6] 
+  data.ids = names(bigger)[bigger == 5]
   return(data.ids)
 }

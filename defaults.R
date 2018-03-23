@@ -26,3 +26,14 @@ for(i in seq_along(learner.names)) {
 }
 save(defaults, file = "defaults.RData")
 
+load("defaults.RData")
+
+# Performance of first default
+for(i in 1:6)
+  print(c(stri_sub(learner.names[i], 13, 30), round(mean(defaults[[i]]$result[1,]), 4)))
+
+# Performance of first 10 defaults
+for(i in 1:6)
+  print(c(stri_sub(learner.names[i], 13, 30), round(mean(apply(defaults[[i]]$result, 2, max)), 4)))
+
+
