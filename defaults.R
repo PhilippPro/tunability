@@ -24,6 +24,7 @@ for(i in seq_along(learner.names)) {
   # Default calculation
   defaults[[length(defaults) + 1]] = calculateDefaultForward(surrogates, n.points = 100000, n.default = 10)
 }
+names(defaults) = stri_sub(learner.names, 13, 100)
 save(defaults, file = "defaults.RData")
 
 load("defaults.RData")
