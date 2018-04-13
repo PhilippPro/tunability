@@ -25,9 +25,24 @@ for(i in seq_along(learner.names)) {
   defaults[[length(defaults) + 1]] = calculateDefaultForward(surrogates, n.points = 100000, n.default = 10)
 }
 names(defaults) = stri_sub(learner.names, 13, 100)
+
+for(i in seq_along(learner.names)) {
+  for(j in 1:ncol(defaults[[i]]$default)) {
+    if(is.factor(defaults[[i]]$default[,j]))
+      defaults[[i]]$default[,j] = as.character(defaults[[i]]$default[,j])
+    defaults[[i]]$default[,j][defaults[[i]]$default[,j] == -11] = NA 
+  }
+}
+
+defaults$ranger$default$replace = as.logical(defaults$ranger$default$replace)
+levels(defaults$ranger$default$respect.unordered.factors) = c("ignore", "order")
+defaults$ranger$default$respect.unordered.factors = as.character(defaults$ranger$default$respect.unordered.factors)
+
 save(defaults, file = "defaults.RData")
 
 load("defaults.RData")
+
+
 
 # Performance of first default
 for(i in 1:6)
