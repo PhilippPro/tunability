@@ -5,8 +5,8 @@ account: philipppro
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 299916
-bundleId: 1284197
+bundleId: 1325499
 url: https://philipppro.shinyapps.io/tunability/
-when: 1521811122.48886
+when: 1524061133.31398
 asMultiple: FALSE
 asStatic: FALSE

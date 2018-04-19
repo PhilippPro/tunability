@@ -331,10 +331,7 @@ ui = fluidPage(
       tabPanel("Interaction effects",
         fluidRow(column(12, uiOutput("combi")),
           column(12, tableOutput("combiTable")))
-      ),
-      tabPanel("Arbitrary Parameter setting", 
-        fluidRow(column(12, uiOutput("par.set")), 
-          column(12, tableOutput("performanceHypParSetting"))))
+      )
     )
   )
 )
