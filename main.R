@@ -14,7 +14,6 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 #tasks = listOMLTasks(number.of.classes = 2L, tag = "OpenML100", estimation.procedure = "10-fold Crossvalidation", number.of.missing.values = 0)
 #data.ids = data.ids[data.ids %in% tasks$data.id]
 
-
 # Change the sign for the brier score to get the correct results
 tbl.results$brier = -tbl.results$brier
 
@@ -23,45 +22,6 @@ learner.names = paste0("mlr.", names(lrn.par.set))
 learner.names = stri_sub(learner.names, 1, -5)
 measures = c("auc", "accuracy", "brier")
 measure = c("auc")
-
-
-################################ Light version of surrogate model comparison with only random forest as surrogate model
-surrogate.mlr.lrns = list(
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order"))
-)
-
-bmr = list()
-
-configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
-library("parallelMap")
-parallelStartSocket(4)
-k = 1
-for (i in seq_along(learner.names)) {
-  print(i)
-  set.seed(521 + i)
- # task.id 146085, 14966 does not work for svm
-    bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
-      data.ids = data.ids, tbl.results, tbl.metaFeatures,  tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
-  gc()
-  save(bmr, file = paste0("results_500000_", measures[k], ".RData"))
-}
-load(paste0("results_500000_", measures[k], ".RData"))
-bmr_surrogate = bmr
-
-
-for(i in 1:5) {
-  perfs = data.table(getBMRAggrPerformances(bmr[[i]], as.df = T, drop = T))[, -"task.id"]
-  # delete datasets with missing results
-  error.results = which(is.na(perfs$kendalltau.test.mean) | perfs$rsq.test.mean < 0)
-  error.results = unlist(lapply(unique(floor(error.results/5 - 0.0001)), 
-    function(x) x + seq(0.2, 1, 0.2)))*5
-  if(length(error.results)!=0)
-    perfs = perfs[-error.results,]
-  perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
-    spearmanrho = spearmanrho.test.mean),function(x) mean(x)), by = "learner.id"])
-  perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
-  print(perfs)
-}
 
 ################################ Compare different surrogate models (complete)
 
@@ -86,7 +46,7 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
   library("parallelMap")
-  parallelStartSocket(1)
+  parallelStartSocket(8)
   for (i in seq_along(learner.names)) {
     print(i)
     set.seed(521 + i)
