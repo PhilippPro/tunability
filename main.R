@@ -69,6 +69,21 @@ for(i in seq_along(bmr)) {
 }
 bmr_surrogate = bmr
 
+# replace NA results of lm/kknn, rsq
+for(i in seq_along(data.ids)) {
+  for(j in seq_along(learner.names)) {
+    for(l in seq_along(surrogate.mlr.lrns)) {
+      rsq = bmr_surrogate[[j]]$results[[i]][[l]]$measures.test$rsq
+      bmr_surrogate[[j]]$results[[i]][[l]]$aggr[2] = 
+        mean(rsq[rsq>0], na.rm = T)
+    }
+  }
+  bmr_surrogate$mlr.classif.kknn$results[[i]]$regr.rpart$aggr[3] = 
+    mean(bmr_surrogate$mlr.classif.kknn$results[[i]]$regr.rpart$measures.test$kendalltau, na.rm = T)
+  bmr_surrogate$mlr.classif.kknn$results[[i]]$regr.rpart$aggr[4] = 
+    mean(bmr_surrogate$mlr.classif.kknn$results[[i]]$regr.rpart$measures.test$spearmanrho, na.rm = T)
+}
+
 # Save results
 save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 
