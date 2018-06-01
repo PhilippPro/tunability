@@ -46,7 +46,7 @@ data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
   library("parallelMap")
-  parallelStartSocket(8)
+  parallelStartSocket(4)
   for (i in seq_along(learner.names)) {
     print(i)
     set.seed(521 + i)
@@ -54,7 +54,7 @@ for(k in 1:3) {
       bmr[[i]] = compareSurrogateModels(measure.name = measures[k], learner.name = learner.names[i], 
         data.ids = data.ids, tbl.results, tbl.metaFeatures, tbl.hypPars, lrn.par.set, surrogate.mlr.lrns)
     gc()
-    save(bmr, file = paste0("results_", measures[k], ".RData"))
+    save(bmr, file = paste0("bmr_", measures[k], ".RData"))
   }
 parallelStop()
 names(bmr) = learner.names
@@ -63,7 +63,7 @@ for(i in seq_along(bmr)) {
   print(i)
   rmat = convertBMRToRankMatrix(bmr[[i]])
   print(rmat)
-  print(plotBMRSummary(bmr[[i]]))
+  print(plotBMRSummary(bmr[[i]], measure = kendalltau))
   print(plotBMRBoxplots(bmr[[i]], style = "violin"))
   print(plotBMRRanksAsBarChart(bmr[[i]], pos = "stack"))
 }
@@ -74,8 +74,7 @@ for(i in seq_along(data.ids)) {
   for(j in seq_along(learner.names)) {
     for(l in seq_along(surrogate.mlr.lrns)) {
       rsq = bmr_surrogate[[j]]$results[[i]][[l]]$measures.test$rsq
-      bmr_surrogate[[j]]$results[[i]][[l]]$aggr[2] = 
-        mean(rsq[rsq>0], na.rm = T)
+      bmr_surrogate[[j]]$results[[i]][[l]]$aggr[2] = mean(rsq[rsq>0], na.rm = T)
     }
   }
   bmr_surrogate$mlr.classif.kknn$results[[i]]$regr.rpart$aggr[3] = 
@@ -87,10 +86,14 @@ for(i in seq_along(data.ids)) {
 # Save results
 save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 
+
 # Best model in general: ranger, cubist
 
 ################################# Calculate tunability measures
+load(paste0("results_", measures[k], ".RData"))
 surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order", num.threads = 4))
+#surrogate.mlr.lrn = makeLearner("regr.cubist")
+
 results = list()
 
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
