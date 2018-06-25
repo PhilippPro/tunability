@@ -8,6 +8,13 @@ lrn.par.set = getMultipleLearners()
 # Get file from the figshare repository
 load(url("https://ndownloader.figshare.com/files/10811309"))
 
+# From wide format to long
+load(url("https://ndownloader.figshare.com/files/10462300"))
+
+a = read.csv(url("https://ndownloader.figshare.com/files/10462300"))
+library(xtable)
+xtable(head(a, 2))
+
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 # Only results for OpenML100 datasets
