@@ -30,7 +30,8 @@ surrogate.mlr.lrns = list(
   makeLearner("regr.lm"),
   makeLearner("regr.rpart"),
   makeLearner("regr.kknn"),
-  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order")),
+  makeLearner("regr.ranger"),
+#  makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order")),
   makeLearner("regr.cubist")
   #makeLearner("regr.xgboost", par.vals = list(nrounds = 300, eta = 0.03, max_depth = 2, nthread = 1)),
   #makeLearner("regr.svm"),
@@ -41,13 +42,12 @@ surrogate.mlr.lrns = list(
 )
 
 bmr = list()
-data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
   library("parallelMap")
   parallelStartSocket(4)
-  for (i in seq_along(learner.names)) {
+  for (i in 1:6) {
     print(i)
     set.seed(521 + i)
     # task.id 146085, 14966 does not work for svm
@@ -91,13 +91,11 @@ save(bmr_surrogate, file = paste0("results_", measures[k], ".RData"))
 # Best model in general: ranger, cubist
 
 ################################# Calculate tunability measures
-load(paste0("results_", measures[k], ".RData"))
-surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order", num.threads = 4))
+surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.threads = 4))
+#surrogate.mlr.lrn = makeLearner("regr.ranger", par.vals = list(num.trees = 2000, respect.unordered.factors = "order", num.threads = 4))
 #surrogate.mlr.lrn = makeLearner("regr.cubist")
 
 results = list()
-
-data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 
 for(i in seq_along(learner.names)) {
   print(i)
@@ -172,7 +170,7 @@ package.defaults = list(
   rpart = data.frame(cp = 0.01, maxdepth = 30, minbucket = 7, minsplit = 20),
   kknn = data.frame(k = 7),
   svm = data.frame(kernel = "radial", cost = 1, gamma = 1, degree = 3), 
-  ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = "order", min.node.size = 0),
+  ranger = data.frame(num.trees = 500, replace = TRUE, sample.fraction = 1, mtry  = 0.1, respect.unordered.factors = FALSE, min.node.size = 0),
   xgboost = data.frame(nrounds = 500, eta = 0.3, subsample = 1, booster = "gbtree", max_depth = 6, min_child_weight = 1,
     colsample_bytree = 1, colsample_bylevel = 1, lambda = 1, alpha = 1)
 )
