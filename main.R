@@ -15,6 +15,11 @@ a = read.csv(url("https://ndownloader.figshare.com/files/10462300"))
 library(xtable)
 xtable(head(a, 2))
 
+a = read.csv(url("https://ndownloader.figshare.com/files/10811312"))
+library(xtable)
+head(a)
+table(a$data_id)
+
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
 # Only results for OpenML100 datasets
