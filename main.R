@@ -9,11 +9,7 @@ lrn.par.set = getMultipleLearners()
 load(url("https://ndownloader.figshare.com/files/10811309"))
 
 # From wide format to long
-load(url("https://ndownloader.figshare.com/files/10462300"))
-
-a = read.csv(url("https://ndownloader.figshare.com/files/10462300"))
-library(xtable)
-xtable(head(a, 2))
+#a = read.csv(url("https://ndownloader.figshare.com/files/10462300"))
 
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
@@ -48,12 +44,16 @@ surrogate.mlr.lrns = list(
   #makeLearner("regr.km")
 )
 
+k = 2
+i = 6
 bmr = list()
+
+load(paste0("bmr_", measures[k], ".RData"))
 
 for(k in 1:3) {
   configureMlr(show.info = TRUE, on.learner.error = "warn", on.learner.warning = "warn", on.error.dump = TRUE)
   library("parallelMap")
-  parallelStartSocket(4)
+  parallelStartSocket(5)
   for (i in 1:6) {
     print(i)
     set.seed(521 + i)
@@ -75,7 +75,6 @@ for(i in seq_along(bmr)) {
   print(plotBMRRanksAsBarChart(bmr[[i]], pos = "stack"))
 }
 bmr_surrogate = bmr
-
 
 # replace NA results of lm/kknn, rsq
 for(i in seq_along(data.ids)) {
@@ -126,7 +125,7 @@ for(i in seq_along(learner.names)) {
   # Tunability for two hyperparameters
   optimumTwoHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "two", n.points = 10000)
   # Tuning space
-  tuningSpace = calculateTuningSpace(optimum, quant = 0.1)
+  tuningSpace = calculateTuningSpace(optimum, quant = 0.05)
     
   results[[i]] = list(default = default,  optimum = optimum, optimumHyperpar = optimumHyperpar, 
     optimumTwoHyperpar = optimumTwoHyperpar, tuningSpace = tuningSpace)

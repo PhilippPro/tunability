@@ -3,11 +3,11 @@ Title: Calculate tunability measures and hyperparameter spaces for tuning
 Version: 0.0.0.1
 Authors@R: person("Philipp", "Probst", email = "philipp_probst@gmx.de", role = c("aut", "cre"))
 Description: Calculate tunability measures and hyperparameter spaces for tuning based on results of the OpenML bot.
-Depends: R (>= 3.3.3)
 License: GPL-2
 Encoding: UTF-8
 LazyData: true
 Depends:
+  R (>= 3.3.3),
   mlr (>= 2.10),
   ParamHelpers (>= 1.8),
   OpenML (>= 1.2),

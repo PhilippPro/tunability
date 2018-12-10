@@ -9,7 +9,7 @@ library(data.table)
 library(DT)
 library(ParamHelpers)
 library(mlr)
-library(devtools)
+#library(devtools)
 library(checkmate)
 library(glmnet)
 library(kknn)
@@ -18,109 +18,118 @@ library(e1071)
 library(ranger)
 library(xgboost)
 
-load("results_all.RData")
+# increase the waiting time!
+# problems with if statements...
+
+load("app_data.RData")
 source("helpers.R")
 
 server = function(input, output) {
   
-  measure.names = names(results_all)
-  learner.names = names(results_all$auc$results)
+  measure.names = names(app_data)
+  learner.names = names(app_data$auc$results)
   
   output$measureAll = renderUI({
-    selectInput('meas', 'Measure', measure.names, selected = measure.names[1], multiple = FALSE)
+   selectInput('meas', 'Measure', measure.names, selected = measure.names[1], multiple = FALSE)
   })
   
   output$algorithm = renderUI({
-    selectInput('algo', 'Algorithm', learner.names, selected = learner.names[1], multiple = FALSE)
+   selectInput('algo', 'Algorithm', learner.names, selected = learner.names[1], multiple = FALSE)
   })
-  
-  bmrInput = reactive({
-    inputi = "mlr.classif.glmnet"
-    if(!is.null(input$algo))
-      inputi = input$algo
-    measur = "auc"
-    if(!is.null(input$meas))
-      measur = input$meas
-    results_all[[which(measure.names == measur)]]$bmr_surrogate[[which(learner.names == inputi)]]
-  })
-  
-  bmrAggr = reactive({
-    perfs = data.table(getBMRAggrPerformances(bmrInput(), as.df = T, drop = T))[, -"task.id"]
-    # delete datasets with missing results
-    error.results = which(is.na(perfs$kendalltau.test.mean) | perfs$rsq.test.mean < 0)
-    error.results = unlist(lapply(unique(floor(error.results/5 - 0.0001)), 
-      function(x) x + seq(0.2, 1, 0.2)))*5
-    if(length(error.results)!=0)
-      perfs = perfs[-error.results,]
-    perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean, 
-      spearmanrho = spearmanrho.test.mean),function(x) mean(x)), by = "learner.id"])
-    perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
-    perfs
-  })
-  
-  output$logscale = renderUI({
-    selectInput('logscale', 'Logarithmic scale', c("No", "Yes"), selected = "No", multiple = FALSE)
-  })
-  
-  output$bmr_measure = renderUI({
-    measures = getBMRMeasureIds(bmrInput())
-    selectInput('bmr_measure', 'Measure', measures, selected = measures[1], multiple = FALSE)
-  })
-  
-  output$bmr_result = renderTable({
-    bmrAggr() 
-  }, digits = 5)
-  
+   
+   bmrInput = reactive({
+     inputi = "mlr.classif.glmnet"
+     if(!is.null(input$algo))
+       inputi = input$algo
+     measur = "auc"
+     if(!is.null(input$meas))
+       measur = input$meas
+     app_data[[which(measure.names == measur)]]$surrogate[[which(learner.names == inputi)]]
+   })
+   
+   bmrAggr = reactive({
+     perfs = data.table(bmrInput())[, -"task.id"]
+     # delete datasets with missing results
+     error.results = which(is.na(perfs$kendalltau.test.mean) | perfs$rsq.test.mean < 0)
+     error.results = unlist(lapply(unique(floor(error.results/5 - 0.0001)),
+       function(x) x + seq(0.2, 1, 0.2)))*5
+     if(length(error.results)!=0)
+       perfs = perfs[-error.results,]
+     perfs = data.frame(perfs[, lapply(list(mse = mse.test.mean, rsq = rsq.test.mean, kendalltau = kendalltau.test.mean,
+       spearmanrho = spearmanrho.test.mean),function(x) mean(x)), by = "learner.id"])
+     perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
+     perfs
+   })
+   
+   output$logscale = renderUI({
+     selectInput('logscale', 'Logarithmic scale', c("No", "Yes"), selected = "No", multiple = FALSE)
+   })
+   
+   output$bmr_measure = renderUI({
+     measures = gsub("\\..*","",colnames(bmrInput())[-c(1,2)])
+     selectInput('bmr_measure', 'Measure', measures, selected = measures[1], multiple = FALSE)
+   })
+
+   output$bmr_result = renderTable({
+     bmrAggr()
+   }, digits = 5)
+   
+  #df_test = app_data$auc$surrogate$mlr.classif.glmnet
+  #plotBMRSummary
+  #bmr_measure = gsub("\\..*","",colnames(app_data$auc$surrogate$mlr.classif.glmnet)[-c(1,2)])
+  #learner_ids = gsub("\\..*","",learner.names)
+
   output$plot1 = renderPlot({
-    measure = bmrInput()$measures[[which(sapply(bmrInput()$measures, `[[`, 1) == input$bmr_measure)]]
-    if (input$logscale == "Yes") {
-      plotBMRSummary(bmrInput(), measure = measure) + scale_x_log10() + ggtitle("Performance on datasets")
-    } else {
-      plotBMRSummary(bmrInput(), measure = measure) + ggtitle("Performance on datasets")
-    }
-  })
-  
-  output$plot2 = renderPlot({
-    measure = bmrInput()$measures[[which(sapply(bmrInput()$measures, `[[`, 1) == input$bmr_measure)]]
-    plotBMRRanksAsBarChart(bmrInput(), measure = measure, pos = "stack") + ggtitle("Frequency of ranks")
-  })
-  
+     sel_meas = paste0(input$bmr_measure, ".test.mean")
+     p = ggplot(bmrInput(), aes_string(x = sel_meas, y = "task.id", col = "learner.id", shape = "learner.id"))
+     p = p + geom_point(size = 4L, position = position_jitter(width = 0, height = 0.05))
+     p = p + scale_shape_manual(values = rep(19, length(learner.names)))
+     p = p + ylab("")
+     p = p + xlab(sel_meas)
+     if (ifelse(!is.null(input$logscale), input$logscale == "Yes" , TRUE)) {
+     #if (input$logscale == "Yes") {
+       p + scale_x_log10() + ggtitle("Performance on datasets")
+     } else {
+       p + ggtitle("Performance on datasets")
+     }
+   })
+
   output$task = renderUI({
     selectInput('taski', 'Task', c("classification", "regression"), selected = "classification", multiple = FALSE)
   })
-  
+
   output$defaultchoice = renderUI({
     selectInput('defaultchoice', 'Defaults', c("Calculated defaults", "Package defaults"), selected = "Calculated defaults", multiple = FALSE)
   })
-  
+
   resultsInput = reactive({
     if (input$defaultchoice == "Calculated defaults") {
-      results_all[[input$meas]]$results[[input$algo]]
+      app_data[[input$meas]]$results[[input$algo]]
     } else {
-      results_all[[input$meas]]$resultsPackageDefaults[[input$algo]]
+      app_data[[input$meas]]$resultsPackageDefaults[[input$algo]]
     }
   })
-  
+
   output$defaults = renderTable({
     resultsInput()$default$default
   }, digits = 3)
-  
+
   overall = reactive({
-    calculateTunability(resultsInput()$default, results_all[[input$meas]]$results[[input$algo]]$optimum)
+    calculateTunability(resultsInput()$default, app_data[[input$meas]]$results[[input$algo]]$optimum)
   })
-  
+
   tunabilityValues = reactive({
     calculateTunability(resultsInput()$default, resultsInput()$optimumHyperpar)
   })
-  
+
   tunabilityValuesMean = reactive({
     colMeans(calculateTunability(resultsInput()$default, resultsInput()$optimumHyperpar))
   })
-  
+
   output$scaled = renderUI({
     selectInput('scaled', 'Scaled (per Dataset)', c(TRUE, FALSE), selected = FALSE, multiple = FALSE)
   })
-  
+
   output$overallTunability = renderTable({
     if (input$scaled) {
       mean(overall()/overall())
@@ -128,7 +137,7 @@ server = function(input, output) {
       mean(overall())
     }
   }, colnames = FALSE, digits = 3)
-  
+
   output$tunability = renderTable({
     if (input$scaled) {
       data.frame(t(colMeans(tunabilityValues()/overall(), na.rm = T)))
@@ -136,34 +145,35 @@ server = function(input, output) {
       data.frame(t(tunabilityValuesMean()))
     }
   }, digits = 3)
-  
+
   output$plot3 = renderPlotly({
     dataf = data.frame(overall(), tunabilityValues())
     colnames(dataf)[1] = "overall"
     column.names = colnames(dataf)
     dataf = stack(dataf)
     dataf$ind = factor(dataf$ind, column.names)
-    ggplot(dataf, aes(x = ind, y = values)) + geom_boxplot() + scale_y_continuous(limits=c(input$yrange[1],input$yrange[2])) + 
+    ggplot(dataf, aes(x = ind, y = values)) + geom_boxplot() + scale_y_continuous(limits=c(input$yrange[1],input$yrange[2])) +
       ylab("tunability per dataset") #+ xlab("parameter") # for the x axis label  # + ggtitle(substring(learner.names[i], 13))
   })
-  
+
   output$visual = renderUI({
     selectInput('visual', 'Visualization of the tunability', c("Density", "Histogram"), selected = "Density", multiple = FALSE)
   })
-  
+
   output$visual3 = renderUI({
-    selectInput('visual3', 'Hyperparameter', c(names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
+      selectInput('visual3', 'Hyperparameter', c(names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
   })
-  
+
   output$plot4 = renderPlotly({
-    dataf = data.frame(resultsInput()$optimum$par.set[,input$visual3])
+    dataf = data.frame(app_data[[input$meas]]$results[[input$algo]]$optimum$par.sets[,input$visual3])
     name = input$visual3
     num = is.numeric(dataf[,1])
-    
+
     inputi = "mlr.classif.glmnet"
+    
     if(!is.null(input$algo))
       inputi = input$algo
-    
+
     if(num) {
       dataf = dataf[dataf[,1]!=-11, , drop = F]
       learner.i = which(learner.names == inputi)
@@ -174,59 +184,33 @@ server = function(input, output) {
         ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name) + scale_x_continuous(trans = "log10")
       }
     } else {
-      ggplot(data=dataf, aes(dataf[,1])) + geom_bar(aes(y = (..count..)/sum(..count..)), col = "black", fill = "white") + 
+      ggplot(data=dataf, aes(dataf[,1])) + geom_bar(aes(y = (..count..)/sum(..count..)), col = "black", fill = "white") +
         xlab(name) + ylab("relative frequency")
     }
   })
-  
-  
-  # output$visual2 = renderUI({
-  #   selectInput('visual2', 'Hyperparameter', c("All", names(tunabilityValuesMean())), selected = "All", multiple = FALSE)
-  # })
-  # output$plot5 = renderPlotly({
-  #   if (input$visual2 == "All") {
-  #     if (input$scaled) {
-  #       x = overall()/overall()
-  #     } else {
-  #       x = overall()
-  #     }
-  #   } else {
-  #     if (input$scaled) {
-  #       x = tunabilityValues()[, input$visual2]/overall()
-  #     } else {
-  #       x = tunabilityValues()[, input$visual2]
-  #     }
-  #   }
-  #   if (input$visual == "Density") {
-  #     ggplot(data.frame(x), aes(x)) + geom_density() + ggtitle("Density of the Overall Tunability")
-  #     } else {
-  #     ggplot(data.frame(x), aes(x)) + geom_histogram(bins = input$bins, stat = "bin", fill = "green", colour = "black") + 
-  #         xlim(range(x)) + ggtitle("Histogram of the Overall Tunability")
-  #   }
-  # })
-  
+
   output$quantile = renderUI({
     numericInput('quantile', 'Quantile for Tuning Space Calculation', 0.1, min = 0, max = 1)
   })
-  
+
   tuningSpace = reactive({
-    calculateTuningSpace(results_all[[input$meas]]$results[[input$algo]]$optimum, quant = input$quantile)
+    calculateTuningSpace(app_data[[input$meas]]$results[[input$algo]]$optimum, quant = input$quantile)
   })
-  
+
   output$tuningSpaceNumerics = renderTable({
     tuningSpace()$numerics
   }, rownames = TRUE, digits = 3)
-  
+
   output$tuningSpaceFactors = renderTable({
     tuningSpace()$factors
   })
-  
+
   output$combi = renderUI({
-    selectInput('combination', 'Combinations of two hyperparameters', 
-      c("Tunability", "Interaction effect", "Performance gain"), 
+    selectInput('combination', 'Combinations of two hyperparameters',
+      c("Tunability", "Interaction effect", "Performance gain"),
       selected = "Tunability", multiple = FALSE)
   })
-  
+
   output$combiTable <- renderTable({
     tab = colMeans(resultsInput()$optimumTwoHyperpar$optimum, dims = 1, na.rm = TRUE) - mean(resultsInput()$default$result)
     if(input$combination == "Tunability") {
@@ -241,15 +225,15 @@ server = function(input, output) {
     colnames(tab) = rownames(tab) = names(tunabilityValuesMean())
     tab
   }, rownames = TRUE, digits = 4)
-  
-  
+
+
   output$par.set = renderUI({
-    tagList(makeLearnerParamUI(results_all[[input$meas]]$results[[input$algo]]))
+    tagList(makeLearnerParamUI(app_data[[input$meas]]$results[[input$algo]]))
   })
-  
-  
+
+
   output$performanceHypParSetting = renderTable({
-    var_names = colnames(results_all[[input$meas]]$results[[input$algo]]$optimum$par.sets)
+    var_names = colnames(app_data[[input$meas]]$results[[input$algo]]$optimum$par.sets)
     par.set = numeric()
     for(i in 1:length(var_names)) {
       par.set[i] = input[[var_names[i]]]
@@ -279,35 +263,35 @@ makeLearnerParamUI = function(results_algo) {
 
 ui = fluidPage(
   titlePanel("Summary of the benchmark results"),
-  sidebarLayout(
-    sidebarPanel(
-      uiOutput("measureAll"),
-      uiOutput("algorithm")
-    ),
-    tabsetPanel(
-      tabPanel("Surrogate models comparison", 
-        fluidRow(
-          column(12, "Average mean of different surrogate models (for not-NA results)", tableOutput("bmr_result"))),
-        fluidRow(
-          column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
-        plotOutput("plot1", width = "95%"),
-        plotOutput("plot2", width = "95%")
+   sidebarLayout(
+     sidebarPanel(
+       uiOutput("measureAll"),
+       uiOutput("algorithm")
+     ),
+     tabsetPanel(
+       tabPanel("Surrogate models comparison", 
+         fluidRow(
+           column(12, "Average mean of different surrogate models (for not-NA results)", tableOutput("bmr_result"))),
+         fluidRow(
+           column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
+        plotOutput("plot1", width = "95%")#,
+        #plotOutput("plot2", width = "95%")
       ),
-      tabPanel("Defaults and Tunability", 
-        fluidRow(column(12, uiOutput("defaultchoice"))),
-        fluidRow(
-          column(12, h4("Defaults"), tableOutput("defaults"))), 
+       tabPanel("Defaults and Tunability", 
+         fluidRow(column(12, uiOutput("defaultchoice"))),
+         fluidRow(
+           column(12, h4("Defaults"), tableOutput("defaults"))), 
         hr(),
         fluidRow(
-          column(12, h4("Tunability"), 
+          column(12, h4("Tunability"),
             column(12, uiOutput("scaled")),
             column(12, fluidRow(
-              column(1, "Overall mean tunability", tableOutput("overallTunability")), 
+              column(1, "Overall mean tunability", tableOutput("overallTunability")),
               column(11, "Hyperparameters (mean)", tableOutput("tunability"))
             )))),
         plotlyOutput("plot3", width = "95%", inline = F),
         sliderInput("yrange",  "Y-range:", min = 0, max = 0.5, value = c(0, 0.025), width = "800px"),
-        
+
         hr(),
         fluidRow(column(12, h4("Tuning Space"),
           column(12, uiOutput("quantile")),
@@ -321,12 +305,12 @@ ui = fluidPage(
         #fluidRow(column(6, uiOutput("visual")),
         #  column(6, uiOutput("visual2")))
         #plotlyOutput("plot5", inline = F),
-        
+
         # conditionalPanel(
         # condition = "input.visual == 'Histogram'",
         #   sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
         # )
-        
+
       ),
       tabPanel("Interaction effects",
         fluidRow(column(12, uiOutput("combi")),

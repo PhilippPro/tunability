@@ -1,5 +1,3 @@
-
-
 getSimpleLearners = function(){
   # Simple learner param set
   simple.lrn.par.set = makeLrnPsSets(learner = makeLearner("classif.glmnet", predict.type = "prob"),
