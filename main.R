@@ -11,10 +11,10 @@ load(url("https://ndownloader.figshare.com/files/10811309"))
 # From wide format to long
 #a = read.csv(url("https://ndownloader.figshare.com/files/10462300"))
 
-a = read.csv(url("https://ndownloader.figshare.com/files/10811312"))
-library(xtable)
-head(a)
-table(a$data_id)
+#a = read.csv(url("https://ndownloader.figshare.com/files/10811312"))
+#library(xtable)
+#head(a)
+#table(a$data_id)
 
 ################################ Restrict data to 500000 results for each algorithm
 data.ids = calculateDataIds(tbl.results, tbl.hypPars, min.experiments = 200)
@@ -332,4 +332,31 @@ save(results_all, file = "./shiny/results_all.RData")
 lrn.regr = makeLearner("regr.ksvm")
 fit.regr = train(lrn.regr, bh.task)
 fa = generateFunctionalANOVAData(fit.regr, bh.task, "lstat", depth = 1, fun = median)
+
+
+# Defaults normal
+k = 1
+default_normal = list()
+for(i in seq_along(learner.names)) {
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
+  # Defaults with normalization
+  default_normal[[i]] = calculateDefault(surrogates, normalization = TRUE)
+}
+
+k = 2
+default_normal_2 = list()
+for(i in seq_along(learner.names)) {
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
+  # Defaults with normalization
+  default_normal_2[[i]] = calculateDefault(surrogates, normalization = TRUE)
+}
+
+k = 3
+default_normal_3 = list()
+for(i in seq_along(learner.names)) {
+  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
+  # Defaults with normalization
+  default_normal_3[[i]] = calculateDefault(surrogates, normalization = TRUE)
+}
+save(default_normal, default_normal_2, default_normal_3, file = "./defaults_normal.RData")
 

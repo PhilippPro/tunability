@@ -1,6 +1,6 @@
 #' Calculate default hyperparameter setting
 #' @param surrogates Surrogate models
-calculateDefault = function(surrogates, n.points = 100000) {
+calculateDefault = function(surrogates, n.points = 100000, normalization = FALSE) {
   surr = surrogates$surrogates
   param.set = surrogates$param.set
   rnd.points = generateRandomDesign(n.points, param.set, trafo = TRUE)
@@ -12,7 +12,16 @@ calculateDefault = function(surrogates, n.points = 100000) {
     preds[, i] = predict(surr[[i]], newdata = rnd.points)$data$response
   }
   # Best default in general
-  average_preds = apply(preds, 1, mean)
+  if(normalization == FALSE) {
+    average_preds = apply(preds, 1, mean)
+  } else {
+    new_preds = preds
+    for(i in 1:ncol(preds)) {
+      new_preds[, i] = scale(preds[, i])
+    }
+    average_preds = apply(new_preds, 1, mean)
+  }
+  
   best = which(average_preds == max(average_preds))[1]
   default = rnd.points[best,, drop = FALSE]
   rownames(default) = NULL
