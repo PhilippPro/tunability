@@ -2,8 +2,8 @@ library(ggplot2)
 library(plotly)
 # library(tidyr)
 library(shiny)
-# library(shinydashboard)
-# library(shinyjs)
+library(shinyjs)
+#library(shinydashboard)
 # library(shinyBS)
 library(data.table)
 library(DT)
@@ -18,13 +18,10 @@ library(e1071)
 library(ranger)
 library(xgboost)
 
-# increase the waiting time!
-# problems with if statements...
-
-load("app_data.RData")
-source("helpers.R")
-
 server = function(input, output) {
+  
+  load("app_data.RData")
+  source("helpers.R")
   
   measure.names = names(app_data)
   learner.names = names(app_data$auc$results)
@@ -35,6 +32,10 @@ server = function(input, output) {
   
   output$algorithm = renderUI({
    selectInput('algo', 'Algorithm', learner.names, selected = learner.names[1], multiple = FALSE)
+  })
+  
+  output$defaultchoice <- renderUI({
+    selectInput('defaultchoice', 'Defaults', c("Calculated defaults", "Package defaults"), selected = "Calculated defaults", multiple = FALSE)
   })
    
    bmrInput = reactive({
@@ -60,7 +61,7 @@ server = function(input, output) {
      perfs$learner.id =  sub('.*\\.', '', as.character(perfs$learner.id))
      perfs
    })
-   
+
    output$logscale = renderUI({
      selectInput('logscale', 'Logarithmic scale', c("No", "Yes"), selected = "No", multiple = FALSE)
    })
@@ -98,9 +99,7 @@ server = function(input, output) {
     selectInput('taski', 'Task', c("classification", "regression"), selected = "classification", multiple = FALSE)
   })
 
-  output$defaultchoice = renderUI({
-    selectInput('defaultchoice', 'Defaults', c("Calculated defaults", "Package defaults"), selected = "Calculated defaults", multiple = FALSE)
-  })
+
 
   resultsInput = reactive({
     if (input$defaultchoice == "Calculated defaults") {
@@ -153,7 +152,7 @@ server = function(input, output) {
     dataf = stack(dataf)
     dataf$ind = factor(dataf$ind, column.names)
     ggplot(dataf, aes(x = ind, y = values)) + geom_boxplot() + scale_y_continuous(limits=c(input$yrange[1],input$yrange[2])) +
-      ylab("tunability per dataset") #+ xlab("parameter") # for the x axis label  # + ggtitle(substring(learner.names[i], 13))
+      ylab("tunability per dataset") + xlab("hyperparameter") # for the x axis label  # + ggtitle(substring(learner.names[i], 13))
   })
 
   output$visual = renderUI({
@@ -179,9 +178,9 @@ server = function(input, output) {
       learner.i = which(learner.names == inputi)
       TRAFO = is.null(lrn.par.set[[learner.i]][[2]]$pars[[name]]$trafo)
       if(TRAFO) {
-        ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name)
+        ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = input$nrbin, col = "black", fill = "white") + xlim(range(dataf[,1])) + xlab(name)
       } else {
-        ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = 6, col = "black", fill = "white") + xlab(name) + scale_x_continuous(trans = "log10")
+        ggplot(data=dataf, aes(dataf[,1])) + geom_histogram(aes(y=..density..), bins = input$nrbin, col = "black", fill = "white") + xlim(range(dataf[,1])) + xlab(paste(name, "(log-scale)")) + scale_x_continuous(trans = "log10")
       }
     } else {
       ggplot(data=dataf, aes(dataf[,1])) + geom_bar(aes(y = (..count..)/sum(..count..)), col = "black", fill = "white") +
@@ -207,7 +206,7 @@ server = function(input, output) {
 
   output$combi = renderUI({
     selectInput('combination', 'Combinations of two hyperparameters',
-      c("Tunability", "Interaction effect", "Performance gain"),
+      c("Tunability", "Performance gain", "Interaction effect"),
       selected = "Tunability", multiple = FALSE)
   })
 
@@ -248,7 +247,7 @@ server = function(input, output) {
 }
 
 makeLearnerParamUI = function(results_algo) {
-  par.set = results_algo$ optimum$par.sets
+  par.set = results_algo$optimum$par.sets
   inp = list()
   for(i in 1:ncol(par.set)) {
     par.type = class(par.set[,i])
@@ -263,62 +262,67 @@ makeLearnerParamUI = function(results_algo) {
 
 ui = fluidPage(
   titlePanel("Summary of the benchmark results"),
-   sidebarLayout(
-     sidebarPanel(
-       uiOutput("measureAll"),
-       uiOutput("algorithm")
-     ),
-     tabsetPanel(
-       tabPanel("Surrogate models comparison", 
-         fluidRow(
-           column(12, "Average mean of different surrogate models (for not-NA results)", tableOutput("bmr_result"))),
-         fluidRow(
-           column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
-        plotOutput("plot1", width = "95%")#,
-        #plotOutput("plot2", width = "95%")
-      ),
-       tabPanel("Defaults and Tunability", 
-         fluidRow(column(12, uiOutput("defaultchoice"))),
-         fluidRow(
-           column(12, h4("Defaults"), tableOutput("defaults"))), 
-        hr(),
-        fluidRow(
-          column(12, h4("Tunability"),
-            column(12, uiOutput("scaled")),
-            column(12, fluidRow(
-              column(1, "Overall mean tunability", tableOutput("overallTunability")),
-              column(11, "Hyperparameters (mean)", tableOutput("tunability"))
-            )))),
-        plotlyOutput("plot3", width = "95%", inline = F),
-        sliderInput("yrange",  "Y-range:", min = 0, max = 0.5, value = c(0, 0.025), width = "800px"),
-
-        hr(),
-        fluidRow(column(12, h4("Tuning Space"),
-          column(12, uiOutput("quantile")),
-          column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
-          column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
-        )),
-        hr(),
-        fluidRow(column(12, h4("Histogram of best hyperparameter on each of the datasets (Prior for tuning)")),
-          column(12, uiOutput("visual3"))),
-        plotlyOutput("plot4", width = "95%", inline = F)
-        #fluidRow(column(6, uiOutput("visual")),
-        #  column(6, uiOutput("visual2")))
-        #plotlyOutput("plot5", inline = F),
-
-        # conditionalPanel(
-        # condition = "input.visual == 'Histogram'",
-        #   sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
-        # )
-
-      ),
-      tabPanel("Interaction effects",
-        fluidRow(column(12, uiOutput("combi")),
-          column(12, tableOutput("combiTable")))
-      )
+  hr(),
+  wellPanel(fluidRow(column(12, h4("General settings"))),
+  fluidRow(column(4,uiOutput("measureAll")),column(4,uiOutput("algorithm")),column(4,uiOutput("defaultchoice")))),
+  hr(),
+  fluidRow(column(12, h4(p("(around 10 seconds loading time for each panel)", style = "color:blue")))),
+  tabsetPanel(
+    tabPanel("Surrogate models comparison", 
+      fluidRow(
+        column(12, h4("Average mean of different surrogate models (for not-NA results)"), tableOutput("bmr_result"))),
+      hr(),
+      column(12, h4("Distribution of the performances on the different datasets")),
+      fluidRow(
+        column(6, uiOutput("logscale")), column(6, uiOutput("bmr_measure"))),
+      plotOutput("plot1", width = "95%")#,
+      #plotOutput("plot2", width = "95%")
+    ),
+    
+    tabPanel("Defaults and Tunability", 
+      fluidRow(
+        column(12, h4("Defaults"), tableOutput("defaults"))), 
+      hr(),
+      fluidRow(
+        column(12, h4("Tunability"),
+          column(12, uiOutput("scaled")),
+          column(12, fluidRow(
+            column(1, h5("Overall mean tunability"), tableOutput("overallTunability")),
+            column(11, h5("Hyperparameters (mean)"), tableOutput("tunability"))
+          )))),
+      plotlyOutput("plot3", width = "95%", inline = F),
+      sliderInput("yrange",  "Y-range:", min = 0, max = 0.5, value = c(0, 0.025), width = "800px"),
+      hr(),
+      fluidRow(column(12, h4("Tuning Space"),
+        column(12, uiOutput("quantile")),
+        column(12, "Numerics", align="left", tableOutput("tuningSpaceNumerics")),
+        column(12, "Factors", align="left", tableOutput("tuningSpaceFactors"))
+      )),
+      hr(),
+      fluidRow(column(12, h4("Histogram of best hyperparameter on each of the datasets (possible prior for tuning)")),
+        column(12, uiOutput("visual3"))),
+      plotlyOutput("plot4", width = "95%", inline = F),
+      sliderInput("nrbin",  "Number of bins:", min = 0, max = 50, value = c(6), width = "800px")
+      #fluidRow(column(6, uiOutput("visual")),
+      #  column(6, uiOutput("visual2")))
+      #plotlyOutput("plot5", inline = F),
+      
+      # conditionalPanel(
+      # condition = "input.visual == 'Histogram'",
+      #   sliderInput("bins",  "Number of bins:", min = 1, max = 50, value = 30)
+      # )
+      
+    ),
+    tabPanel("Interaction effects",
+      fluidRow(column(12, uiOutput("combi")),
+        column(12, h4("Combined tunability and interaction effects")),
+        column(12, tableOutput("combiTable")))
+      #)
+      #)
     )
   )
 )
+
 
 
 shinyApp(ui = ui, server = server)
