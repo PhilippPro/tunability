@@ -1,4 +1,9 @@
+library(checkpoint)
+checkpoint("2018-07-01")
+
 library(devtools)
+library(OpenML)
+library(batchtools)
 #OMLbots_path = "/home/probst/Paper/Exploration_of_Hyperparameters/OMLbots"
 #OMLbots_path = "C:/Promotion/Hyperparameters/OMLbots"
 #load_all(OMLbots_path)
@@ -334,29 +339,55 @@ fit.regr = train(lrn.regr, bh.task)
 fa = generateFunctionalANOVAData(fit.regr, bh.task, "lstat", depth = 1, fun = median)
 
 
-# Defaults normal
+# Defaults normalized (check if results differ substantially)
+
+results_normalized = list()
 k = 1
-default_normal = list()
 for(i in seq_along(learner.names)) {
+  print(i)
   load(paste0("surrogates_", measures[k], "_", i, ".RData"))
   # Defaults with normalization
-  default_normal[[i]] = calculateDefault(surrogates, normalization = TRUE)
+  default = calculateDefault(surrogates, normalization = TRUE)
+  # Tunability hyperparameter specific
+  optimumHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "one", n.points = 100000)
+  # Tunability for two hyperparameters
+  #optimumTwoHyperpar = calculateDatasetOptimum(surrogates, default, hyperpar = "two", n.points = 10000)
+  # Tuning space
+  results_normalized[[i]] = list(default = default,  optimumHyperpar = optimumHyperpar)
+  gc()
+  save(results_normalized, file = paste0("./results_normalized_", measures[k], ".RData"))
 }
 
-k = 2
-default_normal_2 = list()
-for(i in seq_along(learner.names)) {
-  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
-  # Defaults with normalization
-  default_normal_2[[i]] = calculateDefault(surrogates, normalization = TRUE)
+
+for(i in 1:6){
+  print(learner.names[i])
+  print(rbind(results_normalized[[i]]$default$default, results[[i]]$default$default))
+  print("Tunability")
+  print(mean(calculateTunability(results_normalized[[i]]$default, results[[i]]$optimum)))
+  print(mean(calculateTunability(results[[i]]$default, results[[i]]$optimum)))
+  print("Tunability parameter")
+  print(rbind(colMeans(calculateTunability(results_normalized[[i]]$default, results[[i]]$optimumHyperpar)),
+    colMeans(calculateTunability(results[[i]]$default, results_normalized[[i]]$optimumHyperpar))))
+  print("--------------------------------------------------------------------------------------------------------")
 }
 
-k = 3
-default_normal_3 = list()
-for(i in seq_along(learner.names)) {
-  load(paste0("surrogates_", measures[k], "_", i, ".RData"))
-  # Defaults with normalization
-  default_normal_3[[i]] = calculateDefault(surrogates, normalization = TRUE)
+# xtable version
+library(xtable)
+for(i in 1:6){
+  defs = rbind(results_normalized[[i]]$default$default, results[[i]]$default$default)
+  rownames(defs) = c("norm", "mean")
+  colnames(defs) = substr(colnames(defs), 1, 5)
+  print(xtable(defs, caption = paste(learner.names[i], "defaults"), digits = 3))
+  tuna = rbind(
+    c(mean(calculateTunability(results_normalized[[i]]$default, results[[i]]$optimum)), 
+      colMeans(calculateTunability(results_normalized[[i]]$default, results[[i]]$optimumHyperpar))),
+    c(mean(calculateTunability(results[[i]]$default, results[[i]]$optimum)), 
+      colMeans(calculateTunability(results[[i]]$default, results[[i]]$optimumHyperpar)))
+  )
+  colnames(tuna)[1] = "all"
+  colnames(tuna) = substr(colnames(tuna), 1, 5)
+  rownames(tuna) = c("norm", "mean")
+  print(xtable(tuna, caption = paste(learner.names[i], "tunability"), digits = 3))
 }
-save(default_normal, default_normal_2, default_normal_3, file = "./defaults_normal.RData")
 
+# rpart sieht sehr komisch aus!
