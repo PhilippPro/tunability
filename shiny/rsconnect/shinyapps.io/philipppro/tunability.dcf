@@ -5,9 +5,9 @@ account: philipppro
 server: shinyapps.io
 hostUrl: https://api.shinyapps.io/v1
 appId: 299916
-bundleId: 1809443
+bundleId: 1845757
 url: https://philipppro.shinyapps.io/tunability/
-when: 1547232407.9908
+when: 1548856147.23563
 asMultiple: FALSE
 asStatic: FALSE
 ignoredFiles: preproc.R|results_all.RData|old/app_old.R|old/old_app.R
